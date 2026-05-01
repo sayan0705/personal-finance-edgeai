@@ -1,0 +1,59 @@
+{
+  "dataset": "IndianFinanceSLM-SyntheticGapFiller-v2",
+  "created": "2026-05-01T15:34:07.613741",
+  "total_samples": 3183,
+  "generators_run": [
+    "bank_stmt",
+    "tax_regime",
+    "hra_exemption",
+    "section_80c",
+    "xirr_portfolio",
+    "cas_statement",
+    "hinglish",
+    "upi_categorizer",
+    "regulatory_qa",
+    "insurance_advisory",
+    "retirement_schemes"
+  ],
+  "quality_gates": {
+    "raw": 3300,
+    "dedup_removed": 117,
+    "invalid_removed": 0,
+    "final": 3183
+  },
+  "task_distribution": {
+    "tax_calculation": 300,
+    "instruction": 200,
+    "investment_analysis": 300,
+    "retirement_planning": 300,
+    "bank_analysis": 300,
+    "regulatory_qa": 300,
+    "document_parsing": 300,
+    "tax_optimization": 298,
+    "categorization": 300,
+    "tax_comparison": 300,
+    "insurance_advisory": 285
+  },
+  "layer_distribution": {
+    "L2_indian_regulatory": 1198,
+    "L4_community_conversational": 200,
+    "L3_personal_finance": 1785
+  },
+  "language_distribution": {
+    "en": 2702,
+    "hinglish": 481
+  },
+  "source_distribution": {
+    "synthetic_hra": 300,
+    "synthetic_hinglish": 200,
+    "synthetic_xirr": 300,
+    "synthetic_nps_ppf_epf": 300,
+    "synthetic_bank_stmt": 300,
+    "synthetic_sebi_rbi": 300,
+    "synthetic_cas": 300,
+    "synthetic_80c": 298,
+    "synthetic_upi": 300,
+    "synthetic_tax_regime": 300,
+    "synthetic_insurance": 285
+  }
+}

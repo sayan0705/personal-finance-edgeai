@@ -1,0 +1,34 @@
+# ============================================================
+# requirements-edge.txt — Edge Runtime dependencies
+# personal-finance-edge-ai: Edge AI Personal Finance Assistant
+# Install: pip install -r requirements-edge.txt
+# ============================================================
+
+# Install base requirements first
+-r requirements.txt
+
+# ── Edge Inference Runtimes ─────────────────────────────────
+llama-cpp-python>=0.2.50        # Python bindings for llama.cpp (CPU)
+# For GPU support, install with:
+# CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python
+
+onnxruntime>=1.17.0             # ONNX Runtime CPU inference
+# onnxruntime-gpu>=1.17.0       # Uncomment for GPU edge (Jetson etc.)
+
+# Apple Silicon (Mac edge)
+# mlx>=0.7.0                    # Uncomment for Apple MLX runtime
+# mlx-lm>=0.4.0
+
+# ── Lightweight Vector Store (edge) ─────────────────────────
+faiss-cpu>=1.7.4                # FAISS (no server required)
+
+# ── Lightweight Embeddings ──────────────────────────────────
+sentence-transformers>=2.6.0    # all-MiniLM-L6-v2 for edge embedding
+
+# ── Edge App ────────────────────────────────────────────────
+fastapi>=0.109.0                # Lightweight API server
+uvicorn>=0.27.0                 # ASGI server (minimal)
+
+# ── System Monitoring ───────────────────────────────────────
+psutil>=5.9.0                   # RAM, CPU monitoring
+py-cpuinfo>=9.0.0               # CPU info for profiling

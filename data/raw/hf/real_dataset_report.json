@@ -1,0 +1,218 @@
+{
+  "dataset_name": "IndianFinanceSLM-RealCurated",
+  "version": "0.1.0",
+  "created": "2026-05-01T16:02:55.211239",
+  "total_samples": 9044,
+  "sources_attempted": 13,
+  "sources_successful": 9,
+  "layer_distribution": {
+    "L2_indian_regulatory": 2378,
+    "L1_sentiment_nlp": 2907,
+    "L1_foundation": 2295,
+    "L1_financial_qa": 518,
+    "L3_personal_finance": 819,
+    "L4_community_conversational": 127
+  },
+  "task_distribution": {
+    "instruction": 4287,
+    "sentiment": 999,
+    "classification": 993,
+    "qa": 638,
+    "qa_conversation": 206,
+    "ner": 966,
+    "indian_tax": 100,
+    "qa_with_context": 653,
+    "topic_classification": 184,
+    "ner_sentiment_analysis": 18
+  },
+  "source_distribution": {
+    "ceadar-ie/FinTalk-19k": 999,
+    "gbharti/finance-alpaca": 930,
+    "zeroshot/twitter-financial-news-sentiment": 999,
+    "zeroshot/twitter-financial-news-topic": 993,
+    "Josephgflowers/Finance-Instruct-500k": 2165,
+    "sujet-ai/Sujet-Finance-Instruct-177k": 1699,
+    "yixuantt/FinEntity": 966,
+    "AgamiAI/Indian-Income-Tax-Returns": 100,
+    "FinGPT/fingpt-sentiment-train": 193
+  },
+  "quality_gates": {
+    "duplicates_removed": 205,
+    "length_filtered": 1440,
+    "safety_filtered": 3,
+    "diversity_capped": 0
+  },
+  "extraction_log": {
+    "fingpt_sentiment": {
+      "hf_id": "FinGPT/fingpt-sentiment-train",
+      "status": "SUCCESS",
+      "total_available": 76772,
+      "sampled": 1000,
+      "converted": 1000,
+      "failed": 0,
+      "columns": [
+        "input",
+        "output",
+        "instruction"
+      ],
+      "conversion_rate": "100.0%"
+    },
+    "financial_phrasebank": {
+      "hf_id": "takala/financial_phrasebank",
+      "status": "FAILED",
+      "error": "Dataset scripts are no longer supported, but found financial_phrasebank.py",
+      "converted": 0
+    },
+    "finance_alpaca": {
+      "hf_id": "gbharti/finance-alpaca",
+      "status": "SUCCESS",
+      "total_available": 68912,
+      "sampled": 1000,
+      "converted": 984,
+      "failed": 16,
+      "columns": [
+        "instruction",
+        "input",
+        "output",
+        "text"
+      ],
+      "conversion_rate": "98.4%"
+    },
+    "sujet_finance": {
+      "hf_id": "sujet-ai/Sujet-Finance-Instruct-177k",
+      "status": "SUCCESS",
+      "total_available": 177597,
+      "sampled": 3000,
+      "converted": 1767,
+      "failed": 1233,
+      "columns": [
+        "Unnamed: 0",
+        "inputs",
+        "answer",
+        "system_prompt",
+        "user_prompt",
+        "task_type",
+        "dataset",
+        "index_level",
+        "conversation_id"
+      ],
+      "conversion_rate": "58.9%"
+    },
+    "twitter_fin_sentiment": {
+      "hf_id": "zeroshot/twitter-financial-news-sentiment",
+      "status": "SUCCESS",
+      "total_available": 9543,
+      "sampled": 1000,
+      "converted": 1000,
+      "failed": 0,
+      "columns": [
+        "text",
+        "label"
+      ],
+      "conversion_rate": "100.0%"
+    },
+    "twitter_fin_topics": {
+      "hf_id": "zeroshot/twitter-financial-news-topic",
+      "status": "SUCCESS",
+      "total_available": 16990,
+      "sampled": 1000,
+      "converted": 1000,
+      "failed": 0,
+      "columns": [
+        "text",
+        "label"
+      ],
+      "conversion_rate": "100.0%"
+    },
+    "fintalk_19k": {
+      "hf_id": "ceadar-ie/FinTalk-19k",
+      "status": "SUCCESS",
+      "total_available": 19111,
+      "sampled": 1000,
+      "converted": 1000,
+      "failed": 0,
+      "columns": [
+        "instruction",
+        "response",
+        "context",
+        "tag"
+      ],
+      "conversion_rate": "100.0%"
+    },
+    "finance_instruct_500k": {
+      "hf_id": "Josephgflowers/Finance-Instruct-500k",
+      "status": "SUCCESS",
+      "total_available": 518185,
+      "sampled": 3000,
+      "converted": 2762,
+      "failed": 238,
+      "columns": [
+        "system",
+        "user",
+        "assistant"
+      ],
+      "conversion_rate": "92.1%"
+    },
+    "indian_itr": {
+      "hf_id": "AgamiAI/Indian-Income-Tax-Returns",
+      "status": "SUCCESS",
+      "total_available": 200,
+      "sampled": 200,
+      "converted": 200,
+      "failed": 0,
+      "columns": [
+        "pan",
+        "acknowledgement_number",
+        "name",
+        "address",
+        "area",
+        "city",
+        "state",
+        "pincode",
+        "state_code",
+        "country_code",
+        "aadhaar",
+        "entity",
+        "form",
+        "assessment_year",
+        "filing_date",
+        "filing_time",
+        "late_filing",
+        "signatory",
+        "financials"
+      ],
+      "conversion_rate": "100.0%"
+    },
+    "adaptllm_fpb": {
+      "hf_id": "AdaptLLM/finance-tasks_FPB",
+      "status": "FAILED",
+      "error": "Dataset 'AdaptLLM/finance-tasks_FPB' doesn't exist on the Hub or cannot be accessed.",
+      "converted": 0
+    },
+    "adaptllm_fiqa": {
+      "hf_id": "AdaptLLM/finance-tasks_FiQA_SA",
+      "status": "FAILED",
+      "error": "Dataset 'AdaptLLM/finance-tasks_FiQA_SA' doesn't exist on the Hub or cannot be accessed.",
+      "converted": 0
+    },
+    "adaptllm_convfinqa": {
+      "hf_id": "AdaptLLM/finance-tasks_ConvFinQA",
+      "status": "FAILED",
+      "error": "Dataset 'AdaptLLM/finance-tasks_ConvFinQA' doesn't exist on the Hub or cannot be accessed.",
+      "converted": 0
+    },
+    "finentity": {
+      "hf_id": "yixuantt/FinEntity",
+      "status": "SUCCESS",
+      "total_available": 979,
+      "sampled": 979,
+      "converted": 979,
+      "failed": 0,
+      "columns": [
+        "content",
+        "annotations"
+      ],
+      "conversion_rate": "100.0%"
+    }
+  }
+}

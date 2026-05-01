@@ -1,0 +1,107 @@
+dataset:
+  train_path: "data/processed/train"
+  eval_path: "data/processed/eval"
+  test_path: "data/processed/test"
+  text_column: "text"
+  random_seed: 42
+  split_ratios:
+    train: 0.80
+    eval: 0.10
+    test: 0.10
+
+http:
+  timeout: 30
+  max_retries: 3
+  backoff_factor: 2.0
+  user_agent: "Mozilla/5.0 (compatible; FinEdge-DataBot/1.0)"
+
+checksum_cache: "data/.download_cache.json"
+
+sources:
+  public:
+    sebi:
+      name: "sebi_circulars"
+      output_path: "data/raw/public/sebi"
+      base_url: "https://www.sebi.gov.in"
+      circulars_url: "https://www.sebi.gov.in/legal/circulars/"
+      max_pages: 10
+      max_documents: 500
+      rate_limit:
+        min_delay: 2.0
+        max_delay: 5.0
+
+    rbi:
+      name: "rbi_guidelines"
+      output_path: "data/raw/public/rbi"
+      base_url: "https://www.rbi.org.in"
+      master_circulars_url: "https://www.rbi.org.in/Scripts/BS_CircularIndexDisplay.aspx"
+      master_directions_url: "https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx"
+      max_documents: 300
+      rate_limit:
+        min_delay: 2.0
+        max_delay: 5.0
+
+    income_tax:
+      name: "income_tax"
+      output_path: "data/raw/public/income-tax"
+      base_url: "https://www.incometaxindia.gov.in"
+      act_url: "https://www.incometaxindia.gov.in/pages/acts/income-tax-act.aspx"
+      circulars_url: "https://www.incometaxindia.gov.in/pages/communications/circulars.aspx"
+      max_documents: 200
+      rate_limit:
+        min_delay: 1.5
+        max_delay: 4.0
+
+  custom:
+    - name: "finance_qa"
+      path: "data/raw/custom/qa-pairs"
+      format: "jsonl"
+    - name: "conversations"
+      path: "data/raw/custom/conversations"
+      format: "jsonl"
+
+synthetic:
+  output_path: "data/raw/custom"
+  random_seed: 42
+  min_answer_length: 80
+  max_answer_length: 2000
+  topic_counts:
+    tax: 500
+    investment: 500
+    loan: 300
+    insurance: 200
+    general: 500
+
+huggingface:
+  output_path: "data/raw/hf"
+  samples_per_dataset: 1000      # Target sample count for regular-sized datasets
+  max_samples_large: 3000        # Cap for very large datasets (177K+, 500K+)
+  diversity_cap_pct: 0.30        # No single source > 30% of final corpus
+  random_seed: 42
+  system_prompt: >
+    You are an expert financial analyst and Indian personal finance advisor.
+    Provide accurate, well-reasoned responses with relevant calculations and
+    regulatory references where applicable.
+  # Uncomment to restrict which datasets are fetched:
+  # enabled_datasets:
+  #   - finance_alpaca
+  #   - indian_itr
+  #   - adaptllm_convfinqa
+
+gap_filler:
+  output_path: "data/raw/synthetic"
+  samples_per_gap: 300           # Samples per generator (11 generators × 300 = 3,300 raw)
+  random_seed: 42
+  # Uncomment to run only specific generators:
+  # enabled_generators:
+  #   - bank_stmt
+  #   - tax_regime
+  #   - hra_exemption
+  #   - section_80c
+  #   - xirr_portfolio
+  #   - cas_statement
+  #   - hinglish
+  #   - upi_categorizer
+  #   - regulatory_qa
+  #   - insurance_advisory
+  #   - retirement_schemes

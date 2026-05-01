@@ -1,0 +1,36 @@
+# ============================================================
+# requirements-gpu.txt — GPU Fine-Tuning dependencies
+# personal-finance-edge-ai: Edge AI Personal Finance Assistant
+# Requires: CUDA 11.8+ and 16GB+ VRAM for QLoRA
+# Install: pip install -r requirements-gpu.txt
+# ============================================================
+
+# Install base requirements first
+-r requirements.txt
+
+# ── Fine-Tuning Core ────────────────────────────────────────
+torch>=2.1.0                    # PyTorch with CUDA support
+torchvision>=0.16.0
+torchaudio>=2.1.0
+
+# ── HuggingFace Training Stack ──────────────────────────────
+transformers>=4.38.0
+peft>=0.9.0                     # LoRA / QLoRA adapters
+trl>=0.8.1                      # SFTTrainer, DPO, RLHF
+accelerate>=0.27.0
+bitsandbytes>=0.42.0            # 4-bit / 8-bit quantization (QLoRA)
+
+# ── Experiment Tracking ─────────────────────────────────────
+wandb>=0.16.0                   # Weights & Biases
+mlflow>=2.10.0                  # MLflow (alternative)
+tensorboard>=2.16.0
+
+# ── Data & Training Utilities ───────────────────────────────
+einops>=0.7.0                   # Tensor operations
+flash-attn>=2.5.0               # Flash Attention 2 (optional, H100/A100)
+deepspeed>=0.13.0               # Multi-GPU training (optional)
+
+# ── Model Export ────────────────────────────────────────────
+optimum>=1.17.0                 # HuggingFace Optimum (ONNX export)
+onnx>=1.16.0
+onnxruntime-gpu>=1.17.0

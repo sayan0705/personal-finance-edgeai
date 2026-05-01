@@ -1,0 +1,67 @@
+# ============================================================
+# requirements.txt — General dependencies
+# personal-finance-edge-ai: Edge AI Personal Finance Assistant
+# Install: pip install -r requirements.txt
+# ============================================================
+
+# ── Core Python ─────────────────────────────────────────────
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pyyaml>=6.0.1
+rich>=13.7.0               # Pretty terminal output
+tqdm>=4.66.0               # Progress bars
+loguru>=0.7.0              # Logging
+
+# ── Data Processing ─────────────────────────────────────────
+pandas>=2.1.0
+numpy>=1.26.0
+datasets>=2.16.0           # HuggingFace Datasets
+scikit-learn>=1.3.0
+nltk>=3.8.1
+tiktoken>=0.6.0            # Tokenization utilities
+
+# ── Document Loading (RAG Ingestion) ────────────────────────
+pypdf>=4.0.0               # PDF parsing
+pdfminer.six>=20221105     # Advanced PDF text extraction
+beautifulsoup4>=4.12.0     # HTML parsing
+requests>=2.31.0           # HTTP requests for data download
+lxml>=5.1.0                # XML/HTML parser
+
+# ── Embeddings & Vector Store ───────────────────────────────
+sentence-transformers>=2.6.0   # Embedding models
+faiss-cpu>=1.7.4               # FAISS vector store (CPU)
+chromadb>=0.4.22               # ChromaDB (dev/local)
+
+# ── RAG & Agent Framework ───────────────────────────────────
+langchain>=0.1.12
+langchain-community>=0.0.28
+langchain-core>=0.1.30
+rank-bm25>=0.2.2               # BM25 keyword search
+
+# ── HuggingFace (Inference Only) ────────────────────────────
+transformers>=4.38.0
+tokenizers>=0.15.0
+huggingface-hub>=0.21.0
+accelerate>=0.27.0
+
+# ── Benchmarking ────────────────────────────────────────────
+lm-eval>=0.4.2             # EleutherAI lm-evaluation-harness
+rouge-score>=0.1.2         # ROUGE metrics
+sacrebleu>=2.4.0           # BLEU metrics
+evaluate>=0.4.1            # HuggingFace evaluate
+
+# ── App / API ───────────────────────────────────────────────
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+gradio>=4.19.0
+httpx>=0.26.0
+
+# ── Dev Tools ───────────────────────────────────────────────
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+ruff>=0.2.0                # Linter
+black>=24.1.0              # Formatter
+isort>=5.13.0              # Import sorter
+mypy>=1.8.0                # Type checking
+ipykernel>=6.29.0          # Jupyter kernel
+jupyter>=1.0.0
