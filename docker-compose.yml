@@ -1,0 +1,59 @@
+networks:
+  finedge-net:
+    driver: bridge
+
+volumes:
+  openwebui-data:
+
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: finedge-api
+    env_file: .env
+    environment:
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://95.253.220.115:63084/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-BANYAN_TREE_LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-Qwen/Qwen3-8B}
+      - API_KEY=${API_KEY:-finedge-local-key-change-me}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./configs:/app/configs:ro
+    ports:
+      - "8000:8000"
+    networks:
+      - finedge-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: finedge-openwebui
+    environment:
+      - OPENAI_API_BASE_URL=http://api:8000/v1
+      - OPENAI_API_KEY=${API_KEY:-finedge-local-key-change-me}
+      - WEBUI_AUTH=false
+      - DEFAULT_MODELS=${LLM_MODEL:-Qwen/Qwen3-8B}
+      - ENABLE_OLLAMA_API=false
+      # Use our API for embeddings — avoids downloading HuggingFace models on first boot
+      - RAG_EMBEDDING_ENGINE=openai
+      - RAG_OPENAI_API_BASE_URL=http://api:8000/v1
+      - RAG_OPENAI_API_KEY=${API_KEY:-finedge-local-key-change-me}
+      - RAG_EMBEDDING_MODEL=text-embedding-ada-002
+    volumes:
+      - openwebui-data:/app/backend/data
+    ports:
+      - "3000:8080"
+    networks:
+      - finedge-net
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
