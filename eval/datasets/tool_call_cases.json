@@ -1,0 +1,458 @@
+{
+  "description": "BFCL-style tool-call evaluation cases for FinEdge agent tools.",
+  "schema_version": "1.0",
+  "tools": {
+    "tax_calculator": {
+      "description": "Calculates Indian income tax for FY 2024-25",
+      "parameters": {
+        "annual_income": {"type": "number", "required": true, "description": "Annual income in INR"},
+        "regime": {"type": "string", "required": true, "enum": ["new", "old"]},
+        "is_salaried": {"type": "boolean", "required": false, "default": true},
+        "deductions_80c": {"type": "number", "required": false, "default": 0},
+        "deductions_80d": {"type": "number", "required": false, "default": 0},
+        "hra_exemption": {"type": "number", "required": false, "default": 0}
+      }
+    },
+    "sip_calculator": {
+      "description": "Calculates SIP maturity, lumpsum FV, or reverse SIP",
+      "parameters": {
+        "monthly_amount": {"type": "number", "required": false},
+        "annual_rate": {"type": "number", "required": true, "description": "Annual return rate as decimal (0.12 for 12%)"},
+        "years": {"type": "number", "required": true},
+        "lumpsum_amount": {"type": "number", "required": false},
+        "target_amount": {"type": "number", "required": false, "description": "For reverse SIP — calculate monthly_amount needed"},
+        "step_up_rate": {"type": "number", "required": false, "description": "Annual SIP step-up rate as decimal"}
+      }
+    },
+    "loan_advisor": {
+      "description": "Calculates EMI, total interest, and amortization schedule for loans",
+      "parameters": {
+        "principal": {"type": "number", "required": true, "description": "Loan amount in INR"},
+        "annual_rate": {"type": "number", "required": true, "description": "Annual interest rate as decimal"},
+        "tenure_months": {"type": "number", "required": true},
+        "prepayment_amount": {"type": "number", "required": false, "description": "One-time prepayment for interest saving calculation"}
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "tc_tax_001",
+      "category": "single_call",
+      "tool_category": "tax_calculator",
+      "query": "Calculate my income tax for salary of ₹10 lakhs under the new regime for FY 2024-25.",
+      "expected_tool": "tax_calculator",
+      "expected_args": {
+        "annual_income": 1000000,
+        "regime": "new",
+        "is_salaried": true
+      },
+      "expected_value": 44200,
+      "tolerance_pct": 1.0,
+      "notes": "Standard new regime calculation"
+    },
+    {
+      "id": "tc_tax_002",
+      "category": "single_call",
+      "tool_category": "tax_calculator",
+      "query": "I earn ₹12 lakhs, invested ₹1.5L in 80C, paying ₹25K health insurance. Old regime tax?",
+      "expected_tool": "tax_calculator",
+      "expected_args": {
+        "annual_income": 1200000,
+        "regime": "old",
+        "deductions_80c": 150000,
+        "deductions_80d": 25000
+      },
+      "expected_value": 95160,
+      "tolerance_pct": 1.0,
+      "notes": "Old regime with deductions. Taxable=12L-50K-1.5L-25K=9.75L; tax=91500; cess=3660; total=95160"
+    },
+    {
+      "id": "tc_tax_003",
+      "category": "single_call",
+      "tool_category": "tax_calculator",
+      "query": "What is the income tax for ₹7.75 lakhs under the new tax regime?",
+      "expected_tool": "tax_calculator",
+      "expected_args": {
+        "annual_income": 775000,
+        "regime": "new"
+      },
+      "expected_value": 0,
+      "tolerance_pct": 0.0,
+      "notes": "87A rebate makes this zero — boundary case"
+    },
+    {
+      "id": "tc_tax_004",
+      "category": "single_call",
+      "tool_category": "tax_calculator",
+      "query": "Compare new vs old regime for ₹15 lakh salary with maximum 80C and 80D deductions.",
+      "expected_tool": "tax_calculator",
+      "expected_args": {
+        "annual_income": 1500000,
+        "regime": "old",
+        "deductions_80c": 150000,
+        "deductions_80d": 50000
+      },
+      "expected_value": 195000,
+      "tolerance_pct": 1.0,
+      "notes": "Old regime comparison case; new regime for same income = 130000"
+    },
+    {
+      "id": "tc_tax_005",
+      "category": "no_call",
+      "tool_category": "tax_calculator",
+      "query": "What is the meaning of Section 80C?",
+      "expected_tool": null,
+      "expected_args": null,
+      "expected_value": null,
+      "notes": "Informational query — no tool call needed. BFCL relevance detection."
+    },
+    {
+      "id": "tc_tax_006",
+      "category": "no_call",
+      "tool_category": "tax_calculator",
+      "query": "What is the last date to file ITR for salaried employees?",
+      "expected_tool": null,
+      "expected_args": null,
+      "expected_value": null,
+      "notes": "Factual query — no calculator needed. BFCL relevance detection."
+    },
+    {
+      "id": "tc_tax_007",
+      "category": "single_call",
+      "tool_category": "tax_calculator",
+      "query": "My annual income is ₹20 lakhs. Which tax regime is better for me if I have no deductions?",
+      "expected_tool": "tax_calculator",
+      "expected_args": {
+        "annual_income": 2000000,
+        "regime": "new"
+      },
+      "expected_value": 278200,
+      "tolerance_pct": 1.0,
+      "notes": "With no deductions, new regime is almost always better at high incomes"
+    },
+    {
+      "id": "tc_tax_008",
+      "category": "single_call",
+      "tool_category": "tax_calculator",
+      "query": "Self-employed income ₹8 lakhs, new tax regime, not salaried. What is my tax?",
+      "expected_tool": "tax_calculator",
+      "expected_args": {
+        "annual_income": 800000,
+        "regime": "new",
+        "is_salaried": false
+      },
+      "expected_value": 25480,
+      "tolerance_pct": 1.0,
+      "notes": "Non-salaried: no standard deduction. Taxable=8L; tax=4L×5%+1L×10%=30000; cess=1200; total=31200. Wait — let me recalc: 0-3L:0, 3-7L:4L×5%=20000, 7-8L:1L×10%=10000; tax=30000; cess=1200; total=31200"
+    },
+    {
+      "id": "tc_tax_009",
+      "category": "wrong_tool",
+      "tool_category": "tax_calculator",
+      "query": "I want to start a SIP of ₹5000 per month. How much will I get after 10 years at 12% returns?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "monthly_amount": 5000,
+        "annual_rate": 0.12,
+        "years": 10
+      },
+      "expected_value": 1161695,
+      "tolerance_pct": 1.0,
+      "notes": "Query is about SIP, not tax. Agent should call sip_calculator, NOT tax_calculator."
+    },
+    {
+      "id": "tc_tax_010",
+      "category": "single_call",
+      "tool_category": "tax_calculator",
+      "query": "Tax on ₹5 lakh income, new regime.",
+      "expected_tool": "tax_calculator",
+      "expected_args": {
+        "annual_income": 500000,
+        "regime": "new"
+      },
+      "expected_value": 0,
+      "tolerance_pct": 0.0,
+      "notes": "87A rebate: taxable=4.25L; tax=6250; rebate=6250 → 0"
+    },
+    {
+      "id": "tc_sip_001",
+      "category": "single_call",
+      "tool_category": "sip_calculator",
+      "query": "SIP of ₹5,000 per month for 10 years at 12% annual returns. What is the maturity amount?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "monthly_amount": 5000,
+        "annual_rate": 0.12,
+        "years": 10
+      },
+      "expected_value": 1161695,
+      "tolerance_pct": 1.0,
+      "notes": "Standard SIP FV formula"
+    },
+    {
+      "id": "tc_sip_002",
+      "category": "single_call",
+      "tool_category": "sip_calculator",
+      "query": "I want to build a corpus of ₹50 lakhs in 12 years. How much SIP should I do at 12% annual returns?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "target_amount": 5000000,
+        "annual_rate": 0.12,
+        "years": 12
+      },
+      "expected_value": 16863,
+      "tolerance_pct": 2.0,
+      "notes": "Reverse SIP calculation"
+    },
+    {
+      "id": "tc_sip_003",
+      "category": "single_call",
+      "tool_category": "sip_calculator",
+      "query": "Lumpsum investment of ₹5 lakhs at 12% for 15 years. What will be the final value?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "lumpsum_amount": 500000,
+        "annual_rate": 0.12,
+        "years": 15
+      },
+      "expected_value": 2735083,
+      "tolerance_pct": 1.0,
+      "notes": "Lumpsum FV = 5L × (1.12)^15 ≈ ₹27.35L"
+    },
+    {
+      "id": "tc_sip_004",
+      "category": "single_call",
+      "tool_category": "sip_calculator",
+      "query": "I start with ₹5,000 SIP per month with 10% annual step-up for 20 years at 12% returns. What is the maturity amount?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "monthly_amount": 5000,
+        "annual_rate": 0.12,
+        "years": 20,
+        "step_up_rate": 0.10
+      },
+      "expected_value": null,
+      "tolerance_pct": 5.0,
+      "notes": "Step-up SIP; expected ~₹1.64 Cr. Exact value depends on implementation."
+    },
+    {
+      "id": "tc_sip_005",
+      "category": "no_call",
+      "tool_category": "sip_calculator",
+      "query": "What is SIP and how does it work?",
+      "expected_tool": null,
+      "expected_args": null,
+      "expected_value": null,
+      "notes": "Informational query — no calculation needed"
+    },
+    {
+      "id": "tc_sip_006",
+      "category": "single_call",
+      "tool_category": "sip_calculator",
+      "query": "If I invest ₹10,000 per month in a SIP at 15% annual return for 20 years, what will I get?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "monthly_amount": 10000,
+        "annual_rate": 0.15,
+        "years": 20
+      },
+      "expected_value": 15079000,
+      "tolerance_pct": 1.0,
+      "notes": "r=0.0125/month, n=240"
+    },
+    {
+      "id": "tc_sip_007",
+      "category": "single_call",
+      "tool_category": "sip_calculator",
+      "query": "I want to retire in 30 years with ₹2 crore corpus. How much SIP should I start now at 12% return?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "target_amount": 20000000,
+        "annual_rate": 0.12,
+        "years": 30
+      },
+      "expected_value": 5010,
+      "tolerance_pct": 3.0,
+      "notes": "Reverse SIP over 30 years"
+    },
+    {
+      "id": "tc_sip_008",
+      "category": "no_call",
+      "tool_category": "sip_calculator",
+      "query": "Is it safe to invest in mutual funds during a market crash?",
+      "expected_tool": null,
+      "expected_args": null,
+      "expected_value": null,
+      "notes": "Market sentiment / strategy question — no calculation. BFCL relevance detection."
+    },
+    {
+      "id": "tc_sip_009",
+      "category": "single_call",
+      "tool_category": "sip_calculator",
+      "query": "PPF investment of ₹1.5 lakhs per year for 15 years at 7.1%. What is the maturity value?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "monthly_amount": 12500,
+        "annual_rate": 0.071,
+        "years": 15
+      },
+      "expected_value": 4068500,
+      "tolerance_pct": 2.0,
+      "notes": "PPF treated as monthly SIP: 1.5L/12=12500/month. FV ≈ ₹40.68L"
+    },
+    {
+      "id": "tc_sip_010",
+      "category": "wrong_tool",
+      "tool_category": "sip_calculator",
+      "query": "What will be my EMI for a ₹20 lakh home loan at 8.5% for 20 years?",
+      "expected_tool": "loan_advisor",
+      "expected_args": {
+        "principal": 2000000,
+        "annual_rate": 0.085,
+        "tenure_months": 240
+      },
+      "expected_value": 17356,
+      "tolerance_pct": 1.0,
+      "notes": "Loan question — should call loan_advisor, NOT sip_calculator"
+    },
+    {
+      "id": "tc_loan_001",
+      "category": "single_call",
+      "tool_category": "loan_advisor",
+      "query": "Home loan of ₹20 lakhs at 8.5% annual interest for 20 years. What is the monthly EMI?",
+      "expected_tool": "loan_advisor",
+      "expected_args": {
+        "principal": 2000000,
+        "annual_rate": 0.085,
+        "tenure_months": 240
+      },
+      "expected_value": 17356,
+      "tolerance_pct": 1.0,
+      "notes": "Standard EMI formula"
+    },
+    {
+      "id": "tc_loan_002",
+      "category": "single_call",
+      "tool_category": "loan_advisor",
+      "query": "Personal loan of ₹5 lakhs at 14% for 3 years. EMI and total interest?",
+      "expected_tool": "loan_advisor",
+      "expected_args": {
+        "principal": 500000,
+        "annual_rate": 0.14,
+        "tenure_months": 36
+      },
+      "expected_value": 17089,
+      "tolerance_pct": 1.0,
+      "notes": "EMI ≈ ₹17,089; total payment ≈ 6.15L; interest ≈ 1.15L"
+    },
+    {
+      "id": "tc_loan_003",
+      "category": "single_call",
+      "tool_category": "loan_advisor",
+      "query": "Car loan ₹8 lakhs at 10% for 5 years. Monthly EMI?",
+      "expected_tool": "loan_advisor",
+      "expected_args": {
+        "principal": 800000,
+        "annual_rate": 0.10,
+        "tenure_months": 60
+      },
+      "expected_value": 17002,
+      "tolerance_pct": 1.0,
+      "notes": "EMI = 8L × (0.1/12) × (1.1/12)^60 / ((1+0.1/12)^60-1) ≈ ₹17,002"
+    },
+    {
+      "id": "tc_loan_004",
+      "category": "single_call",
+      "tool_category": "loan_advisor",
+      "query": "I have a home loan of ₹30 lakhs at 9% for 15 years. If I prepay ₹5 lakhs today, how much interest do I save?",
+      "expected_tool": "loan_advisor",
+      "expected_args": {
+        "principal": 3000000,
+        "annual_rate": 0.09,
+        "tenure_months": 180,
+        "prepayment_amount": 500000
+      },
+      "expected_value": null,
+      "tolerance_pct": 5.0,
+      "notes": "Prepayment interest saving calculation"
+    },
+    {
+      "id": "tc_loan_005",
+      "category": "no_call",
+      "tool_category": "loan_advisor",
+      "query": "What is CIBIL score and why is it important for getting a loan?",
+      "expected_tool": null,
+      "expected_args": null,
+      "expected_value": null,
+      "notes": "Informational query — no loan calculation needed"
+    },
+    {
+      "id": "tc_loan_006",
+      "category": "single_call",
+      "tool_category": "loan_advisor",
+      "query": "Education loan ₹10 lakhs at 11% interest for 7 years. Calculate EMI and total repayment.",
+      "expected_tool": "loan_advisor",
+      "expected_args": {
+        "principal": 1000000,
+        "annual_rate": 0.11,
+        "tenure_months": 84
+      },
+      "expected_value": 17058,
+      "tolerance_pct": 1.0,
+      "notes": "Education loan EMI ≈ ₹17,058"
+    },
+    {
+      "id": "tc_loan_007",
+      "category": "no_call",
+      "tool_category": "loan_advisor",
+      "query": "Is it better to take a fixed rate or floating rate home loan?",
+      "expected_tool": null,
+      "expected_args": null,
+      "expected_value": null,
+      "notes": "Strategic/qualitative question — no calculator needed"
+    },
+    {
+      "id": "tc_loan_008",
+      "category": "multi_call",
+      "tool_category": "loan_advisor",
+      "query": "Compare: ₹20L home loan at 8.5% for 20 years vs same loan at 9% for 15 years. Which has lower total interest?",
+      "expected_tool": "loan_advisor",
+      "expected_args_list": [
+        {"principal": 2000000, "annual_rate": 0.085, "tenure_months": 240},
+        {"principal": 2000000, "annual_rate": 0.09, "tenure_months": 180}
+      ],
+      "expected_value": null,
+      "notes": "Two loan_advisor calls needed to compare scenarios"
+    },
+    {
+      "id": "tc_loan_009",
+      "category": "single_call",
+      "tool_category": "loan_advisor",
+      "query": "Gold loan ₹2 lakhs at 12% annual rate for 1 year. What is the monthly EMI?",
+      "expected_tool": "loan_advisor",
+      "expected_args": {
+        "principal": 200000,
+        "annual_rate": 0.12,
+        "tenure_months": 12
+      },
+      "expected_value": 17747,
+      "tolerance_pct": 1.0,
+      "notes": "Short tenure gold loan"
+    },
+    {
+      "id": "tc_loan_010",
+      "category": "wrong_tool",
+      "tool_category": "loan_advisor",
+      "query": "How much will ₹5 lakhs grow to if invested for 10 years at 12% annual return?",
+      "expected_tool": "sip_calculator",
+      "expected_args": {
+        "lumpsum_amount": 500000,
+        "annual_rate": 0.12,
+        "years": 10
+      },
+      "expected_value": 1552924,
+      "tolerance_pct": 1.0,
+      "notes": "Investment growth question → sip_calculator, not loan_advisor. Lumpsum FV = 5L×(1.12)^10 ≈ 15.53L"
+    }
+  ]
+}

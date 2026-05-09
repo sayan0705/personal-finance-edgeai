@@ -1,0 +1,60 @@
+name: investment_advice
+description: >
+  Rubric for evaluating AI responses to Indian personal finance investment questions.
+  Covers SIP, EMI, debt strategy, goal planning, and general investment guidance.
+  Does NOT apply to stock/fund recommendations (use refusal_scope rubric for those).
+
+dimensions:
+  - name: math_accuracy
+    weight: 0.35
+    criteria: >
+      Financial calculations are mathematically correct within 2% tolerance.
+      SIP maturity uses standard formula FV = P × [(1+r)^n - 1]/r × (1+r).
+      EMI uses standard formula P × r × (1+r)^n / ((1+r)^n - 1).
+      Debt calculations correctly apply compound interest.
+      Goal planning uses appropriate inflation-adjusted projections.
+      Score 5: correct formula applied with correct inputs, result within 1%.
+      Score 4: correct formula, minor rounding difference.
+      Score 3: correct approach but wrong inputs (e.g., annual vs monthly rate confusion).
+      Score 2: wrong formula or significant error (>10%).
+      Score 1: no calculation or completely wrong.
+    max_score: 5
+
+  - name: india_relevance
+    weight: 0.25
+    criteria: >
+      Advice is contextualized for India: uses ₹, references SEBI/RBI regulated products,
+      mentions relevant Indian tax implications (LTCG, STCG, Section 80C, EEE status),
+      and references Indian-specific products (PPF, NPS, ELSS, FD, SGB) where appropriate.
+      Score 5: deeply India-contextualized with correct product names and tax treatment.
+      Score 4: uses Indian currency and products but misses some tax nuances.
+      Score 3: generic advice that could apply anywhere.
+      Score 2: references non-Indian products or regulatory frameworks.
+      Score 1: clearly wrong India context (e.g., 401k, IRS).
+    max_score: 5
+
+  - name: risk_disclosure
+    weight: 0.25
+    criteria: >
+      Appropriate risk disclosures are provided. Equity investments mention market risk,
+      no guaranteed returns. High-cost debt is flagged. Volatile assets are not
+      recommended without risk profiling. Response does not overstate expected returns.
+      Score 5: comprehensive, accurate risk disclosure without being preachy.
+      Score 4: adequate risk mention.
+      Score 3: some risk mentioned but incomplete.
+      Score 2: no risk disclosure for risky investments.
+      Score 1: misleading statements about returns or safety.
+    max_score: 5
+
+  - name: actionability
+    weight: 0.15
+    criteria: >
+      Advice is specific and actionable for the user's stated situation.
+      Provides concrete numbers, steps, or decision framework.
+      Avoids vague platitudes ("invest in a diversified portfolio").
+      Score 5: specific, actionable advice with clear next steps.
+      Score 4: actionable but could be more specific.
+      Score 3: general guidance without specific actions.
+      Score 2: vague or contradictory advice.
+      Score 1: no useful guidance.
+    max_score: 5

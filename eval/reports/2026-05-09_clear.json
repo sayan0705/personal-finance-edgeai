@@ -1,0 +1,125 @@
+{
+  "model_name": "Qwen3-8B Q4_K_M",
+  "report_date": "2026-05-09",
+  "overall_status": "FAIL",
+  "metrics_met": "0/13",
+  "dimensions": [
+    {
+      "dimension": "Cost",
+      "metric": "Cost-Normalized Accuracy",
+      "value": null,
+      "unit": "accuracy/GB",
+      "target": "> 0.15",
+      "met": false,
+      "notes": "Requires both Layer 2 and Layer 3 results"
+    },
+    {
+      "dimension": "Latency",
+      "metric": "TTFT p50 (warm)",
+      "value": null,
+      "unit": "ms/tok/s",
+      "target": "\u2014 (Layer 3 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Latency",
+      "metric": "TTFT p95 (warm)",
+      "value": null,
+      "unit": "ms/tok/s",
+      "target": "\u2014 (Layer 3 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Latency",
+      "metric": "Throughput",
+      "value": null,
+      "unit": "ms/tok/s",
+      "target": "\u2014 (Layer 3 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Latency",
+      "metric": "Thermal Throughput",
+      "value": null,
+      "unit": "ms/tok/s",
+      "target": "\u2014 (Layer 3 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Efficiency",
+      "metric": "Peak RAM",
+      "value": null,
+      "unit": "MB/J",
+      "target": "\u2014 (Layer 3 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Efficiency",
+      "metric": "Model Disk Size",
+      "value": null,
+      "unit": "MB/J",
+      "target": "\u2014 (Layer 3 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Efficiency",
+      "metric": "Energy per Query",
+      "value": null,
+      "unit": "MB/J",
+      "target": "\u2014 (Layer 3 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Assurance",
+      "metric": "Policy Adherence Score (PAS)",
+      "value": null,
+      "unit": "%",
+      "target": "\u2014 (Layer 4 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Assurance",
+      "metric": "PII Leakage Rate",
+      "value": null,
+      "unit": "%",
+      "target": "\u2014 (Layer 4 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Reliability",
+      "metric": "Task Completion Rate",
+      "value": null,
+      "unit": "%",
+      "target": "\u2014 (Layer 2 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Reliability",
+      "metric": "pass@1",
+      "value": null,
+      "unit": "%",
+      "target": "\u2014 (Layer 2 not run)",
+      "met": false,
+      "notes": ""
+    },
+    {
+      "dimension": "Reliability",
+      "metric": "Unit Test Pass Rate",
+      "value": 54.9,
+      "unit": "%",
+      "target": "> 90%",
+      "met": false,
+      "notes": ""
+    }
+  ]
+}
