@@ -1,0 +1,67 @@
+# Ephemeral ingestion container — run once offline to populate ChromaDB.
+#
+# Build:
+#   docker build -f docker/Dockerfile.ingest -t finedge-ingest .
+#
+# Run (local folder):
+#   docker run --rm \
+#     --network personal-finance-edge-ai_finedge-net \
+#     -v /absolute/path/to/pdfs:/data:ro \
+#     -v personal-finance-edge-ai_model-cache:/model-cache \
+#     finedge-ingest \
+#     --folder /data --chroma-host chromadb --chroma-port 8000
+#
+# Run (URLs):
+#   docker run --rm \
+#     --network personal-finance-edge-ai_finedge-net \
+#     -v personal-finance-edge-ai_model-cache:/model-cache \
+#     finedge-ingest \
+#     --url https://example.com/report.pdf \
+#     --chroma-host chromadb --chroma-port 8000
+#
+# Run (URL file):
+#   docker run --rm \
+#     --network personal-finance-edge-ai_finedge-net \
+#     -v /path/to/urls.txt:/urls.txt:ro \
+#     -v personal-finance-edge-ai_model-cache:/model-cache \
+#     finedge-ingest \
+#     --url-file /urls.txt --chroma-host chromadb --chroma-port 8000
+
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install only what the ingestion pipeline needs (no FastAPI / uvicorn)
+RUN pip install --no-cache-dir \
+    "pypdf>=4.0.0" \
+    "requests>=2.31.0" \
+    "beautifulsoup4>=4.12.0" \
+    "lxml>=5.1.0" \
+    "sentence-transformers>=2.7.0" \
+    "chromadb-client>=0.5.0" \
+    "langchain-text-splitters>=0.0.1" \
+    "tqdm>=4.66.0" \
+    "rich>=13.7.0" \
+    "pyyaml>=6.0.1" \
+    "loguru>=0.7.0"
+
+COPY rag/ ./rag/
+COPY scripts/ ./scripts/
+COPY configs/ ./configs/
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# HuggingFace model cache — mount the shared model-cache volume at runtime
+# so the embedding model is not re-downloaded on every container run.
+ENV HF_HOME=/model-cache
+ENV TRANSFORMERS_CACHE=/model-cache/transformers
+ENV SENTENCE_TRANSFORMERS_HOME=/model-cache/sentence-transformers
+
+# Default: show help (all real options passed at `docker run` time)
+ENTRYPOINT ["python", "scripts/ingest.py"]
+CMD ["--help"]

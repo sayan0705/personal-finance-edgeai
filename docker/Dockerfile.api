@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# ── Core API dependencies ──────────────────────────────────────────────────
 RUN pip install --no-cache-dir \
     fastapi>=0.109.0 \
     "uvicorn[standard]>=0.27.0" \
@@ -15,6 +16,18 @@ RUN pip install --no-cache-dir \
     loguru>=0.7.0 \
     python-dotenv>=1.0.0
 
+# ── RAG dependencies ───────────────────────────────────────────────────────
+# chromadb-client: lightweight HTTP client only (no embedded server)
+# sentence-transformers: bi-encoder embeddings (all-MiniLM-L6-v2)
+# rank-bm25: sparse keyword retrieval
+# sentence-transformers also brings the cross-encoder for reranking
+RUN pip install --no-cache-dir \
+    "chromadb-client>=0.5.0" \
+    "sentence-transformers>=2.7.0" \
+    "rank-bm25>=0.2.2" \
+    "langchain-text-splitters>=0.0.1"
+
+# ── Application code ───────────────────────────────────────────────────────
 COPY app/ ./app/
 COPY agents/ ./agents/
 COPY rag/ ./rag/
@@ -22,6 +35,11 @@ COPY configs/ ./configs/
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+
+# HuggingFace model cache — overridden to a volume mount in docker-compose
+ENV HF_HOME=/model-cache
+ENV TRANSFORMERS_CACHE=/model-cache/transformers
+ENV SENTENCE_TRANSFORMERS_HOME=/model-cache/sentence-transformers
 
 EXPOSE 8000
 

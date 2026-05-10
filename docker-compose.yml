@@ -4,9 +4,39 @@ networks:
 
 volumes:
   openwebui-data:
+  chromadb-data:
+  model-cache:
 
 services:
 
+  # --------------------------------------------------------------------------
+  # ChromaDB — local vector store (persisted volume)
+  # --------------------------------------------------------------------------
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: finedge-chromadb
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+      - CHROMA_SERVER_AUTHN_CREDENTIALS_FILE=
+      - CHROMA_SERVER_AUTH_PROVIDER=
+    volumes:
+      - chromadb-data:/chroma/chroma
+    ports:
+      - "8001:8000"     # host:8001 → container:8000 (avoids conflict with API)
+    networks:
+      - finedge-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --------------------------------------------------------------------------
+  # FinEdge API
+  # --------------------------------------------------------------------------
   api:
     build:
       context: .
@@ -19,20 +49,35 @@ services:
       - LLM_MODEL=${LLM_MODEL:-Qwen/Qwen3-8B}
       - API_KEY=${API_KEY:-finedge-local-key-change-me}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # RAG / ChromaDB
+      - RAG_ENABLED=${RAG_ENABLED:-true}
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      # HuggingFace model cache (sentence-transformers + cross-encoder)
+      - HF_HOME=/model-cache
+      - TRANSFORMERS_CACHE=/model-cache/transformers
+      - SENTENCE_TRANSFORMERS_HOME=/model-cache/sentence-transformers
     volumes:
       - ./configs:/app/configs:ro
+      - model-cache:/model-cache   # persist downloaded HF models across rebuilds
     ports:
       - "8000:8000"
     networks:
       - finedge-net
+    depends_on:
+      chromadb:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 40s
 
+  # --------------------------------------------------------------------------
+  # OpenWebUI — chat frontend
+  # --------------------------------------------------------------------------
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: finedge-openwebui
