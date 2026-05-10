@@ -4,68 +4,75 @@ networks:
 
 volumes:
   openwebui-data:
-  chromadb-data:
   model-cache:
 
 services:
-
-  # --------------------------------------------------------------------------
-  # ChromaDB — local vector store (persisted volume)
-  # --------------------------------------------------------------------------
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: finedge-chromadb
+  mcp-tools:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mcp
+    container_name: banyantree-mcp-tools
+    env_file: .env
     environment:
-      - IS_PERSISTENT=TRUE
-      - ANONYMIZED_TELEMETRY=FALSE
-      - CHROMA_SERVER_AUTHN_CREDENTIALS_FILE=
-      - CHROMA_SERVER_AUTH_PROVIDER=
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - BANYANTREE_DATA_DIR=/app/data
+      - BANYANTREE_FINANCIAL_KG_ROOT=/app/data/financial_kg
+      - BANYANTREE_RAW_DOCS_DIR=/app/data/financial_kg/raw_docs
+      - BANYANTREE_SEED_DOCS_PATH=/app/data/financial_kg/raw_docs/seed/personal_finance_seed.json
+      - BANYANTREE_PAGEINDEX_FLATTENED_DOCS_PATH=/app/data/financial_kg/raw_docs/pageindex/pageindex_flattened_docs.json
     volumes:
-      - chromadb-data:/chroma/chroma
+      - ./data:/app/data
     ports:
-      - "8001:8000"     # host:8001 → container:8000 (avoids conflict with API)
+      - "8010:8010"
     networks:
       - finedge-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 20s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
-  # --------------------------------------------------------------------------
-  # FinEdge API
-  # --------------------------------------------------------------------------
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile.api
-    container_name: finedge-api
+    container_name: banyantree-api
     env_file: .env
     environment:
       - LLM_BASE_URL=${LLM_BASE_URL:-http://95.253.220.115:63084/v1}
       - LLM_API_KEY=${LLM_API_KEY:-BANYAN_TREE_LLM_API_KEY}
       - LLM_MODEL=${LLM_MODEL:-Qwen/Qwen3-8B}
+      - BANYANTREE_LLM_PROVIDER=api
+      - BANYANTREE_API_MODEL=${LLM_MODEL:-Qwen/Qwen3-8B}
+      - BANYANTREE_API_BASE_URL=${LLM_BASE_URL:-http://95.253.220.115:63084/v1}
+      - BANYANTREE_API_KEY=${LLM_API_KEY:-BANYAN_TREE_LLM_API_KEY}
+      - BANYANTREE_SKIP_MCP_BOOTSTRAP=1
+      - BANYANTREE_MCP_BASE=http://mcp-tools:8010
       - API_KEY=${API_KEY:-finedge-local-key-change-me}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      # RAG / ChromaDB
-      - RAG_ENABLED=${RAG_ENABLED:-true}
-      - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8000
-      # HuggingFace model cache (sentence-transformers + cross-encoder)
+      - RAG_ENABLED=false
       - HF_HOME=/model-cache
       - TRANSFORMERS_CACHE=/model-cache/transformers
       - SENTENCE_TRANSFORMERS_HOME=/model-cache/sentence-transformers
+      - BANYANTREE_DATA_DIR=/app/data
+      - BANYANTREE_FINANCIAL_KG_ROOT=/app/data/financial_kg
+      - BANYANTREE_RAW_DOCS_DIR=/app/data/financial_kg/raw_docs
+      - BANYANTREE_SEED_DOCS_PATH=/app/data/financial_kg/raw_docs/seed/personal_finance_seed.json
+      - BANYANTREE_PAGEINDEX_FLATTENED_DOCS_PATH=/app/data/financial_kg/raw_docs/pageindex/pageindex_flattened_docs.json
+      - BANYANTREE_PAGEINDEX_INPUT_DIR=/app/data/financial_kg/pageindex/inputs
+      - FINSAGE_KG_PATH=/app/data/financial_kg/lightrag
     volumes:
       - ./configs:/app/configs:ro
-      - model-cache:/model-cache   # persist downloaded HF models across rebuilds
+      - ./data:/app/data
+      - model-cache:/model-cache
     ports:
       - "8000:8000"
     networks:
       - finedge-net
     depends_on:
-      chromadb:
+      mcp-tools:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -75,19 +82,15 @@ services:
       retries: 3
       start_period: 40s
 
-  # --------------------------------------------------------------------------
-  # OpenWebUI — chat frontend
-  # --------------------------------------------------------------------------
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
-    container_name: finedge-openwebui
+    container_name: banyantree-openwebui
     environment:
       - OPENAI_API_BASE_URL=http://api:8000/v1
       - OPENAI_API_KEY=${API_KEY:-finedge-local-key-change-me}
       - WEBUI_AUTH=false
       - DEFAULT_MODELS=${LLM_MODEL:-Qwen/Qwen3-8B}
       - ENABLE_OLLAMA_API=false
-      # Use our API for embeddings — avoids downloading HuggingFace models on first boot
       - RAG_EMBEDDING_ENGINE=openai
       - RAG_OPENAI_API_BASE_URL=http://api:8000/v1
       - RAG_OPENAI_API_KEY=${API_KEY:-finedge-local-key-change-me}

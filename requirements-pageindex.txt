@@ -1,0 +1,8 @@
+# Optional dependencies for offline PageIndex ingestion only.
+# PageIndex is not currently packaged as a pip-installable project.
+# Clone it separately, then install the cloned repo's own requirements:
+#
+#   git clone https://github.com/VectifyAI/PageIndex.git external/PageIndex
+#   python -m pip install -r external/PageIndex/requirements.txt
+#
+# This placeholder file is kept so the workflow has a stable name.

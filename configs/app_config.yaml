@@ -1,12 +1,13 @@
 app:
-  name: personal-finance-edge-ai
-  version: "0.1.0"
+  name: banyantree-personal-finance-edge-ai
+  version: "0.2.1"
   log_level: "${LOG_LEVEL:INFO}"
   host: "0.0.0.0"
   port: 8000
+  show_flow_trace: "${BANYANTREE_SHOW_FLOW_TRACE:true}"
 
 llm:
-  base_url: "${LLM_BASE_URL:http://99.27.206.243:61502/v1}"
+  base_url: "${LLM_BASE_URL:http://95.253.220.115:63084/v1}"
   api_key: "${LLM_API_KEY:BANYAN_TREE_LLM_API_KEY}"
   model: "${LLM_MODEL:Qwen/Qwen3-8B}"
   max_tokens: 2048
@@ -19,6 +20,17 @@ api:
   cors_origins:
     - "*"
   stream_timeout_seconds: 180
+
+banyantree:
+  flow: "original FINANCIAL_HIERARCHICAL_LIGHT_RAG.query_agentic: guardrail -> sentiment_analysis -> workflow_router -> tools_or_KG_PageIndex_RAG -> grounded_answer"
+  chat_model: "${LLM_MODEL:Qwen/Qwen3-8B}"
+  pdf_import_model: "${BANYANTREE_MODEL_ID:Qwen/Qwen2.5-7B-Instruct}"
+  data_dir: "${BANYANTREE_DATA_DIR:/app/data}"
+  financial_kg_root: "${BANYANTREE_FINANCIAL_KG_ROOT:/app/data/financial_kg}"
+  raw_docs_dir: "${BANYANTREE_RAW_DOCS_DIR:/app/data/financial_kg/raw_docs}"
+  seed_docs_path: "${BANYANTREE_SEED_DOCS_PATH:/app/data/financial_kg/raw_docs/seed/personal_finance_seed.json}"
+  pageindex_flattened_docs_path: "${BANYANTREE_PAGEINDEX_FLATTENED_DOCS_PATH:/app/data/financial_kg/raw_docs/pageindex/pageindex_flattened_docs.json}"
+  pageindex_input_dir: "${BANYANTREE_PAGEINDEX_INPUT_DIR:/app/data/financial_kg/pageindex/inputs}"
 
 guardrails:
   input:
@@ -42,26 +54,18 @@ agent:
   enabled: true
   max_iterations: 5
   tools:
-    - "tax_calculator"
+    - "amfi_nav"
+    - "search_rag"
+    - "screener"
     - "sip_calculator"
-    - "loan_advisor"
+    - "emi_calculator"
+    - "portfolio_health"
+    - "goal_planner"
+    - "portfolio_multi_agent"
 
 memory:
   short_term_window: 10
 
 rag:
-  enabled: "${RAG_ENABLED:true}"
-  chroma:
-    host: "${CHROMA_HOST:chromadb}"
-    port: "${CHROMA_PORT:8000}"
-    collection: "finedge_finance_docs"
-  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
-  retrieval_k: 10
-  rerank_top_n: 3
-  chunk_size: 512
-  chunk_overlap: 64
-  bm25:
-    enabled: true
-  reranker:
-    enabled: true
-    model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  enabled: false
+  mode: "original_banyantree_lightrag_kg_pageindex"

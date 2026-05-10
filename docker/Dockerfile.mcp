@@ -1,0 +1,31 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    fastapi>=0.109.0 \
+    "uvicorn[standard]>=0.27.0" \
+    httpx>=0.26.0 \
+    "pydantic>=2.0.0" \
+    loguru>=0.7.0 \
+    yfinance>=0.2.50
+
+COPY agents/ ./agents/
+COPY src/finsage_mcp_server.py ./src/finsage_mcp_server.py
+COPY data/ ./data/
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV BANYANTREE_DATA_DIR=/app/data
+ENV BANYANTREE_FINANCIAL_KG_ROOT=/app/data/financial_kg
+ENV BANYANTREE_RAW_DOCS_DIR=/app/data/financial_kg/raw_docs
+ENV BANYANTREE_SEED_DOCS_PATH=/app/data/financial_kg/raw_docs/seed/personal_finance_seed.json
+ENV BANYANTREE_PAGEINDEX_FLATTENED_DOCS_PATH=/app/data/financial_kg/raw_docs/pageindex/pageindex_flattened_docs.json
+
+EXPOSE 8010
+
+CMD ["uvicorn", "src.finsage_mcp_server:app", "--host", "0.0.0.0", "--port", "8010"]

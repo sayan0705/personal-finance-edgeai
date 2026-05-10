@@ -2,11 +2,12 @@ FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# ── Core API dependencies ──────────────────────────────────────────────────
+# API + container shell
 RUN pip install --no-cache-dir \
     fastapi>=0.109.0 \
     "uvicorn[standard]>=0.27.0" \
@@ -14,32 +15,50 @@ RUN pip install --no-cache-dir \
     "pydantic>=2.0.0" \
     pyyaml>=6.0.1 \
     loguru>=0.7.0 \
-    python-dotenv>=1.0.0
+    python-dotenv>=1.0.0 \
+    yfinance>=0.2.50
 
-# ── RAG dependencies ───────────────────────────────────────────────────────
-# chromadb-client: lightweight HTTP client only (no embedded server)
-# sentence-transformers: bi-encoder embeddings (all-MiniLM-L6-v2)
-# rank-bm25: sparse keyword retrieval
-# sentence-transformers also brings the cross-encoder for reranking
+# Original BanyanTree RAG runtime dependencies.
+# Chat/generation uses the OpenAI-compatible Qwen API, but the original RAG
+# still imports/uses embeddings, FAISS, BM25, KG, clustering, and guardrails.
 RUN pip install --no-cache-dir \
-    "chromadb-client>=0.5.0" \
-    "sentence-transformers>=2.7.0" \
-    "rank-bm25>=0.2.2" \
-    "langchain-text-splitters>=0.0.1"
+    torch \
+    transformers==4.44.0 \
+    sentence-transformers==3.0.1 \
+    faiss-cpu==1.8.0 \
+    rank-bm25==0.2.2 \
+    networkx==3.3 \
+    scikit-learn==1.4.2 \
+    spacy \
+    numpy \
+    pandas \
+    beautifulsoup4 \
+    lxml \
+    nest_asyncio
 
-# ── Application code ───────────────────────────────────────────────────────
 COPY app/ ./app/
 COPY agents/ ./agents/
 COPY rag/ ./rag/
 COPY configs/ ./configs/
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY data/ ./data/
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
-
-# HuggingFace model cache — overridden to a volume mount in docker-compose
 ENV HF_HOME=/model-cache
 ENV TRANSFORMERS_CACHE=/model-cache/transformers
 ENV SENTENCE_TRANSFORMERS_HOME=/model-cache/sentence-transformers
+ENV BANYANTREE_SKIP_MCP_BOOTSTRAP=1
+ENV BANYANTREE_MCP_BASE=http://mcp-tools:8010
+ENV BANYANTREE_LLM_PROVIDER=api
+ENV BANYANTREE_DATA_DIR=/app/data
+ENV BANYANTREE_FINANCIAL_KG_ROOT=/app/data/financial_kg
+ENV BANYANTREE_RAW_DOCS_DIR=/app/data/financial_kg/raw_docs
+ENV BANYANTREE_SEED_DOCS_PATH=/app/data/financial_kg/raw_docs/seed/personal_finance_seed.json
+ENV BANYANTREE_PAGEINDEX_FLATTENED_DOCS_PATH=/app/data/financial_kg/raw_docs/pageindex/pageindex_flattened_docs.json
+ENV BANYANTREE_PAGEINDEX_INPUT_DIR=/app/data/financial_kg/pageindex/inputs
+ENV RAG_ENABLED=false
 
 EXPOSE 8000
 

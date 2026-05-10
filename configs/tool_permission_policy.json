@@ -1,0 +1,35 @@
+﻿{
+  "requires_permission": [
+    "portfolio_multi_agent",
+    "screener",
+    "amfi_nav"
+  ],
+  "auto_approved": [
+    "search_rag",
+    "sip_calculator",
+    "emi_calculator",
+    "portfolio_health",
+    "goal_planner"
+  ],
+  "dangerous_patterns": [
+    "rm\\s+-rf",
+    "del\\s+/[sq]",
+    "format\\s+[a-z]:",
+    "powershell",
+    "cmd\\.exe",
+    "subprocess",
+    "os\\.system",
+    "eval\\s*\\(",
+    "exec\\s*\\(",
+    "curl\\s+",
+    "wget\\s+",
+    "download\\s+and\\s+run",
+    "shell\\s+command",
+    "insider\\s+tip",
+    "inside\\s+information",
+    "pump\\s+and\\s+dump",
+    "manipulate\\s+stock",
+    "hide\\s+income",
+    "tax\\s+evasion"
+  ]
+}
