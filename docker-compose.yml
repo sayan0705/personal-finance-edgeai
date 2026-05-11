@@ -50,6 +50,7 @@ services:
       - BANYANTREE_API_KEY=${LLM_API_KEY:-BANYAN_TREE_LLM_API_KEY}
       - BANYANTREE_SKIP_MCP_BOOTSTRAP=1
       - BANYANTREE_MCP_BASE=http://mcp-tools:8010
+      - BANYANTREE_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
       - API_KEY=${API_KEY:-finedge-local-key-change-me}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - RAG_ENABLED=false

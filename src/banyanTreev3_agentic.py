@@ -758,14 +758,20 @@ class OpenAICompatibleChatLLM:
             "temperature": temperature,
         }
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
-        try:
-            with httpx.Client(timeout=90) as client:
-                response = client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
-                response.raise_for_status()
-                data = response.json()
-                return data["choices"][0]["message"]["content"].strip()
-        except Exception as exc:
-            raise RuntimeError(f"API model call failed: {exc}") from exc
+        last_exc: Exception | None = None
+        for attempt in range(1, 4):  # 3 retries — mirrors LLMClient in app/api/llm_client.py
+            try:
+                with httpx.Client(timeout=120) as client:  # 120 s — same as LLMClient
+                    response = client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+                    response.raise_for_status()
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"].strip()
+            except Exception as exc:
+                last_exc = exc
+                print(f"API model call attempt {attempt}/3 failed: {exc}")
+                if attempt < 3:
+                    time.sleep(2 ** attempt)  # 2 s, 4 s backoff
+        raise RuntimeError(f"API model call failed: {last_exc}") from last_exc
 
 
 
@@ -776,9 +782,15 @@ class FinancialPIIRedactor:
     def __init__(self):
         try:
             from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
+            from presidio_analyzer.nlp_engine import NlpEngineProvider
             from presidio_anonymizer import AnonymizerEngine
             from presidio_anonymizer.entities import OperatorConfig
-            self.analyzer       = AnalyzerEngine()
+            _nlp_config = {
+                "nlp_engine_name": "spacy",
+                "models": [{"lang_code": "en", "model_name": "en_core_web_sm"}],
+            }
+            _nlp_engine = NlpEngineProvider(nlp_configuration=_nlp_config).create_engine()
+            self.analyzer       = AnalyzerEngine(nlp_engine=_nlp_engine)
             self.anonymizer     = AnonymizerEngine()
             self.OperatorConfig = OperatorConfig
             self._add_indian_patterns()
@@ -1247,9 +1259,9 @@ class MCPToolClient:
         body = {k: v for k, v in tool_call.items() if k != "tool"}
         print(f" MCP Ã¢â€ â€™ POST {self.mcp_base}{self.MCP_ENDPOINTS[tool]} {body}")
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(f"{self.mcp_base}{self.MCP_ENDPOINTS[tool]}", json=body)
-            result = resp.json()
+                result = resp.json()  # read inside context so body is available
             if result.get("success"):
                 print(f"   {tool}: success")
                 return result["data"]
@@ -1877,26 +1889,41 @@ class ToolRegistry:
 
 class DeterministicQueryRouter:
     BLOCKS=[(r'hide income|conceal income|tax evasion','TAX_EVASION'),(r'guaranteed\s+\d+%\s+(?:returns?|profit)','SCAM_RETURNS'),(r'insider tip|non public information|inside information','INSIDER_TRADING'),(r'pump and dump|manipulate stock','MARKET_MANIPULATION'),(r'ponzi|pyramid scheme','PONZI')]
-    EXCLUDED_TOKENS={'PE','NAV','SIP','EMI','NSE','BSE','ETF','IPO','ROI','CAGR','GDP','RBI','SEBI','PPF','NPS'}
-    KNOWN_NSE_ALIASES={
-        'tcs':'TCS',
-        'tata consultancy services':'TCS',
-        'infosys':'INFY',
-        'infy':'INFY',
-        'wipro':'WIPRO',
-        'reliance':'RELIANCE',
-        'hdfc bank':'HDFCBANK',
-        'hdfcbank':'HDFCBANK',
-        'icici bank':'ICICIBANK',
-        'icicibank':'ICICIBANK',
-        'sbi':'SBIN',
-        'state bank of india':'SBIN',
-        'zomato':'ZOMATO',
-        'bharti airtel':'BHARTIARTL',
-        'airtel':'BHARTIARTL',
+    EXCLUDED_TOKENS={
+        'PE','NAV','SIP','EMI','NSE','BSE','ETF','IPO','ROI','CAGR','GDP','RBI','SEBI','PPF','NPS',
+        'ELSS','ULIP','FD','RD','PF','EPF','ESOP','EPS','PNL','EBIT','EBITDA','PAT','NII','NIM',
+        # LLM output / chat-history tokens that match the ticker regex
+        'JSON','USER','ASSISTANT','SYSTEM','HUMAN','AI','BOT','LLM','GPT','CHAT','THINK','FLOW',
+        'OK','TASK','KG','MCP','RAG','API','HTTP','URL','GET','POST','PUT','DB','SQL','ID',
+        'OKLO','OKTA','OKE','OWWAF','TWO','MX','HK','US','UK','EU','CN','JP','KR','DU','DE',
+        'IN','IS','OF','AT','BY','IF','OR','AND','THE','FOR','ARE','WAS','HAS','NOT','NEW',
     }
-    def __init__(self, registry, tokenizer=None, generator=None, device=None):
-        self.registry=registry; self.tokenizer=tokenizer; self.generator=generator; self.device=device; self._symbol_cache={}
+    # Loaded from data/financial_kg/nse_ticker_dict.json at first use
+    _NSE_DICT_CACHE: dict = {}
+    _NSE_DICT_LOADED: bool = False
+
+    @classmethod
+    def _load_nse_dict(cls) -> dict:
+        if cls._NSE_DICT_LOADED:
+            return cls._NSE_DICT_CACHE
+        try:
+            _path = Path(os.environ.get('BANYANTREE_FINANCIAL_KG_ROOT', '/app/data/financial_kg')) / 'nse_ticker_dict.json'
+            with open(_path, encoding='utf-8') as f:
+                data = json.load(f)
+            cls._NSE_DICT_CACHE = {k.lower(): v for k, v in data.get('tickers', {}).items()}
+            print(f"NSE ticker dict loaded: {len(cls._NSE_DICT_CACHE)} entries from {_path}")
+        except Exception as e:
+            print(f"NSE ticker dict load failed ({e}), using empty dict")
+            cls._NSE_DICT_CACHE = {}
+        cls._NSE_DICT_LOADED = True
+        return cls._NSE_DICT_CACHE
+
+    # kept for backward compat — routes through the JSON file now
+    KNOWN_NSE_ALIASES: dict = {}
+
+    def __init__(self, registry, tokenizer=None, generator=None, device=None, llm_client=None):
+        self.registry=registry; self.tokenizer=tokenizer; self.generator=generator; self.device=device; self._symbol_cache={}; self.llm_client=llm_client
+        self.KNOWN_NSE_ALIASES = self._load_nse_dict()
     def _has(self, pat, txt): return bool(re.search(pat, txt, re.I))
     def _candidate_terms(self, candidate):
         """Normalize LLM/yfinance outputs into candidate ticker/name strings."""
@@ -1948,65 +1975,80 @@ class DeterministicQueryRouter:
             f"Rejected/failed candidates from market-data validation: {failed_candidates[:8]}\n"
             "Return current NSE ticker candidates as JSON array:"
         )
-        prompt = build_qwen_prompt(self.tokenizer, system_msg, user_msg)
-        try:
-            inputs=self.tokenizer(prompt, return_tensors='pt', max_length=1100, truncation=True).to(self.device)
-            with torch.no_grad():
-                outputs=self.generator.generate(**inputs, max_new_tokens=100, temperature=0.0, do_sample=False, eos_token_id=self.tokenizer.eos_token_id, pad_token_id=self.tokenizer.eos_token_id)
-            raw=self.tokenizer.decode(outputs[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True).strip()
-            print(f"Ticker LLM fallback raw: {raw}")
-            values=[]
-            raw_clean=re.sub(r'^```(?:json)?\s*|\s*```$', '', raw.strip(), flags=re.I)
-            match=re.search(r'\[[\s\S]*?\]', raw_clean)
-            if match:
-                try:
-                    loaded=json.loads(match.group())
-                except Exception:
-                    import ast as _ast
-                    loaded=_ast.literal_eval(match.group())
-                values.extend(self._candidate_terms(loaded))
-            else:
-                values.extend([tok for tok in re.findall(r'\b[A-Z][A-Z0-9&-]{1,11}\b', raw_clean) if tok not in self.EXCLUDED_TOKENS])
-            out=[]
-            for value in values:
-                value=str(value or '').strip()
-                if value and value not in out:
-                    out.append(value)
-            return out
-        except Exception as e:
-            print(f"Ticker LLM extraction failed: {e}")
-            return []
+        # In API mode tokenizer/generator are None — use the API LLM directly.
+        if self.tokenizer is None or self.generator is None:
+            if not self.llm_client:
+                return []
+            try:
+                raw = self.llm_client.complete(system_msg, user_msg, max_tokens=100, temperature=0.0)
+                print(f"Ticker API-LLM fallback raw: {raw}")
+            except Exception as e:
+                print(f"Ticker API-LLM extraction failed: {e}")
+                return []
+        else:
+            prompt = build_qwen_prompt(self.tokenizer, system_msg, user_msg)
+            try:
+                inputs=self.tokenizer(prompt, return_tensors='pt', max_length=1100, truncation=True).to(self.device)
+                with torch.no_grad():
+                    outputs=self.generator.generate(**inputs, max_new_tokens=100, temperature=0.0, do_sample=False, eos_token_id=self.tokenizer.eos_token_id, pad_token_id=self.tokenizer.eos_token_id)
+                raw=self.tokenizer.decode(outputs[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True).strip()
+                print(f"Ticker LLM fallback raw: {raw}")
+            except Exception as e:
+                print(f"Ticker LLM extraction failed: {e}")
+                return []
+        values=[]
+        raw_clean=re.sub(r'^```(?:json)?\s*|\s*```$', '', raw.strip(), flags=re.I)
+        match=re.search(r'\[[\s\S]*?\]', raw_clean)
+        if match:
+            try:
+                loaded=json.loads(match.group())
+            except Exception:
+                import ast as _ast
+                loaded=_ast.literal_eval(match.group())
+            values.extend(self._candidate_terms(loaded))
+        else:
+            values.extend([tok for tok in re.findall(r'\b[A-Z][A-Z0-9&-]{1,11}\b', raw_clean) if tok not in self.EXCLUDED_TOKENS])
+        out=[]
+        for value in values:
+            value=str(value or '').strip()
+            if value and value not in out:
+                out.append(value)
+        return out
 
     def _yfinance_search_candidates(self, text):
-        out=[]
-        def add_quote(q):
-            sym=str(q.get('symbol','')).upper().strip()
-            exch=str(q.get('exchange','')).upper()
-            quote_type=str(q.get('quoteType','')).upper()
-            if sym and (sym.endswith('.NS') or exch in {'NSI','NSE','NSEI','NSE'} or quote_type in {'EQUITY','ETF'}):
-                clean=sym.replace('.NS','').replace('.BO','')
-                if clean and clean not in out:
-                    out.append(clean)
+        # Yahoo Finance search (yf.Search and free endpoint) both require an auth
+        # crumb — return 401 without it. Use NSE ticker dict + LLM fallback instead.
+        return []
+
+    def _resolve_company_via_llm(self, company_name: str) -> str | None:
+        """Ask the API LLM for the NSE ticker of an unknown company name."""
+        if not self.llm_client:
+            return None
+        cached = self._symbol_cache.get(f'llm:{company_name.lower()}')
+        if cached is not None:
+            return cached or None
         try:
-            import yfinance as yf
-            if hasattr(yf, 'Search'):
-                search=yf.Search(text, max_results=10)
-                for q in getattr(search, 'quotes', []) or []:
-                    add_quote(q)
-        except Exception:
-            pass
-        try:
-            resp=httpx.get('https://query2.finance.yahoo.com/v1/finance/search', params={'q': text, 'quotesCount': 10, 'newsCount': 0}, timeout=8)
-            if resp.status_code == 200:
-                for q in resp.json().get('quotes', []) or []:
-                    add_quote(q)
-        except Exception:
-            pass
-        return out
+            system_msg = "You are an NSE stock ticker resolver. Return ONLY the NSE ticker symbol (e.g. INFY, TCS, M&M). No explanation, no markdown."
+            user_msg = f"What is the NSE ticker symbol for: {company_name}"
+            raw = self.llm_client.complete(system_msg, user_msg, max_tokens=20, temperature=0.0).strip()
+            raw = re.sub(r'[^A-Z0-9&\-]', '', raw.upper())
+            result = raw if re.fullmatch(r'[A-Z][A-Z0-9&\-]{1,11}', raw) else None
+            print(f"LLM ticker lookup '{company_name}' -> {result}")
+            self._symbol_cache[f'llm:{company_name.lower()}'] = result or ''
+            return result
+        except Exception as e:
+            print(f"LLM ticker lookup failed for '{company_name}': {e}")
+            self._symbol_cache[f'llm:{company_name.lower()}'] = ''
+            return None
+
     def _company_name_candidates(self, query):
         stop={
-            'what','is','are','the','a','an','today','current','share','price','stock','market','pe','ratio','p/e','nav','nse','bse',
-            'compare','and','vs','versus','for','of','in','india','tell','me','show','give','latest','fundamentals','quarterly','results'
+            'what','is','are','the','a','an','today','current','share','price','stock',
+            'market','pe','ratio','nav','nse','bse','compare','and','vs','versus','for',
+            'of','in','india','tell','me','show','give','latest','fundamentals','quarterly',
+            'results','good','bad','invest','investment','buy','sell','should','would',
+            'could','when','where','how','why','who','which','them','any','some','prices',
+            'stcok','stocks','shares','today','now','currently','about','with','into',
         }
         cleaned=re.sub(r'[^A-Za-z0-9&.\-\s]', ' ', str(query or ''))
         parts=[]
@@ -2043,16 +2085,10 @@ class DeterministicQueryRouter:
                 ticker=yf.Ticker(f'{sym}.NS')
                 valid=False
                 try:
-                    fast=getattr(ticker, 'fast_info', {}) or {}
-                    valid=bool(fast.get('last_price') or fast.get('currency'))
+                    hist=ticker.history(period='5d', interval='1d', timeout=5)
+                    valid=not hist.empty
                 except Exception:
                     valid=False
-                if not valid:
-                    try:
-                        hist=ticker.history(period='5d', interval='1d')
-                        valid=not hist.empty
-                    except Exception:
-                        valid=False
                 if valid:
                     self._symbol_cache[key]=sym
                     return sym
@@ -2075,33 +2111,33 @@ class DeterministicQueryRouter:
     def _symbols(self, query):
         out=[]
         ql=str(query or '').lower()
+        # Step 1: NSE ticker dict lookup (file-based, instant)
         for alias, sym in self.KNOWN_NSE_ALIASES.items():
             if re.search(rf'\b{re.escape(alias)}\b', ql) and sym not in out:
                 out.append(sym)
-        candidates=[]
+        # Step 2: Uppercase ticker tokens from query (e.g. user typed "INFY" directly)
         for tok in re.findall(r'\b[A-Z][A-Z0-9&-]{1,11}\b', query):
-            if tok not in self.EXCLUDED_TOKENS: candidates.append(tok)
-        candidates += self._company_name_candidates(query)
-        candidates += self._yfinance_search_candidates(query)
-        resolved, failed = self._resolve_candidate_list(candidates, limit=max(0, 4-len(out)))
-        for sym in resolved:
-            if sym not in out:
+            if tok not in self.EXCLUDED_TOKENS and tok not in out:
+                out.append(tok)
+        # Step 3: Company name phrase extraction — only single words, no bigrams
+        # (bigrams cause concatenation garbage like WIPROMAHINDRA)
+        name_parts = self._company_name_candidates(query)
+        single_word_names = [p for p in name_parts if ' ' not in p]
+        # Step 4: For each unresolved company name not in alias dict, call LLM
+        for name in single_word_names:
+            if len(out) >= 4: break
+            sym = self._resolve_company_via_llm(name)
+            if sym and sym not in out:
                 out.append(sym)
-        llm_candidates=[]
-        if failed and len(out) < 4:
-            llm_candidates = self._llm_symbol_candidates(query, failed_candidates=failed)
-            llm_out, llm_failed = self._resolve_candidate_list(llm_candidates, limit=4-len(out))
-            for sym in llm_out:
-                if sym not in out:
-                    out.append(sym)
-            failed += llm_failed
-        print(f"Ticker resolver candidates={candidates[:8]} llm_fallback={llm_candidates[:8]} resolved={out}")
+        print(f"Ticker resolver resolved={out}")
         return out
     def classify(self, query):
         ql=query.lower()
         for pat,reason in self.BLOCKS:
             if self._has(pat, ql): return {'guardrail':'BLOCK','reason':reason,'intent':'personal_finance','tool_calls':[],'confidence':1.0,'route_source':'rules'}
-        if any(k in ql for k in ['share price','stock','market cap','pe ratio','p/e','quarterly results','52 week','52w','nifty','sensex','fundamentals']):
+        _market_kw=['share price','stock','market cap','pe ratio','p/e','quarterly results','52 week','52w','nifty','sensex','fundamentals','invest in','buy shares','should i buy','price today','current price']
+        _alias_hit = any(alias in ql for alias in self.KNOWN_NSE_ALIASES)
+        if any(k in ql for k in _market_kw) or _alias_hit:
             syms=self._symbols(query); calls=[{'tool':'screener','symbol':s} for s in syms] if syms else []
             return {'guardrail':'OK','reason':'','intent':'market','tool_calls':calls,'confidence':0.95 if calls else 0.7,'route_source':'yfinance_llm' if calls else 'qwen'}
         if any(k in ql for k in ['nav','mutual fund','elss']): return {'guardrail':'OK','reason':'','intent':'market','tool_calls':[{'tool':'amfi_nav','fund_filter':'ELSS' if 'elss' in ql else query[:40]}],'confidence':0.92,'route_source':'rules'}
@@ -2169,17 +2205,24 @@ class EnhancedMCPToolClient(MCPToolClient):
 
 _ORIG_INIT=FINANCIAL_HIERARCHICAL_LIGHT_RAG.__init__
 def _patched_init(self, kg_db_path='finsage_kg_database'):
-    _ORIG_INIT(self, kg_db_path); self.memory=EnhancedConversationMemory(max_turns=5); self.tool_registry=ToolRegistry(); self.router=DeterministicQueryRouter(self.tool_registry, self.tokenizer, self.generator, self.device); self.mcp_client=EnhancedMCPToolClient(mcp_base=MCP_BASE); self.mcp_client.register_rag(self)
+    _ORIG_INIT(self, kg_db_path); self.memory=EnhancedConversationMemory(max_turns=5); self.tool_registry=ToolRegistry(); self.router=DeterministicQueryRouter(self.tool_registry, self.tokenizer, self.generator, self.device, llm_client=getattr(self,'llm_client',None)); self.mcp_client=EnhancedMCPToolClient(mcp_base=MCP_BASE); self.mcp_client.register_rag(self)
 
 def _patched_generate(self, query, docs, community_context, reasoning_paths):
     if not docs: return "I don't have enough information to answer accurately. Consult a SEBI-registered financial advisor."
     ctx=[]
     for i,d in enumerate(docs[:6],1): ctx.append(format_retrieved_doc_for_prompt(d, i, max_chars=420))
     mem=self.memory.get_context(); comm='\n'.join(community_context[:3]) if community_context else ''; paths='\n'.join(' -> '.join(p) for p in reasoning_paths[:3]) if reasoning_paths else ''
-    system_msg = "You are FinSage, a grounded financial assistant for Indian users. Use only the evidence provided. Prefer exact figures from [LIVE DATA]. If evidence is partial, say what is known and what is missing. Keep it concise and practical. End with: Consult a SEBI-registered advisor."
+    system_msg = (
+        "You are FinSage, a grounded financial assistant for Indian users. "
+        "Use only the evidence provided. Prefer exact figures from [LIVE DATA]. "
+        "When the question has multiple parts (e.g. prices AND investment advice), address ALL parts. "
+        "Structure your answer: first state the live prices clearly, then give a balanced investment view "
+        "based on the data (momentum, PE, risk). Be specific and practical. "
+        "End with: Consult a SEBI-registered advisor before investing."
+    )
     user_msg = f"{mem}\n\nDocuments:\n" + '\n\n'.join(ctx) + f"\n\n[Topic summaries]\n{comm}\n\n[Knowledge graph hints]\n{paths}\n\nQuestion: {query}"
     if getattr(self, "llm_client", None):
-        raw = self.llm_client.complete(system_msg, user_msg, max_tokens=200, temperature=0.0)
+        raw = self.llm_client.complete(system_msg, user_msg, max_tokens=600, temperature=0.0)
     else:
         prompt = self._build_prompt(system_msg, user_msg)
         inp=self.tokenizer(prompt, return_tensors='pt', max_length=2048, truncation=True).to(self.device)
@@ -2327,6 +2370,15 @@ async def _patched_query_agentic_v7(self, question, k=8):
     t0 = time.time()
     print(f"\n{'='*60}\nQ {question}\n{'='*60}")
     analysis = self.sentiment_router.analyze(question)
+    # Deterministic override: if the rule-based router has high confidence this is a
+    # market query (company name alias hit or stock keywords), trust it over the LLM
+    # sentiment router which can misclassify mixed queries ("is it good to invest in X").
+    if hasattr(self, 'router') and analysis['intent'] != 'market':
+        det = self.router.classify(question)
+        if det.get('intent') == 'market' and det.get('confidence', 0) >= 0.7:
+            analysis['intent'] = 'market'
+            analysis['workflow'] = 'portfolio_multi_agent'
+            print(f"FLOW deterministic override: intent=market (confidence={det['confidence']}, source={det.get('route_source')})")
     print(f"FLOW sentiment={analysis['sentiment']} | risk={analysis['risk_profile']} | urgency={analysis['urgency']} | intent={analysis['intent']} | workflow={analysis['workflow']}")
     if analysis['guardrail'] == 'BLOCK':
         blocked = {'question':question,'answer':self.classifier.GUARDRAIL_FALLBACK,'blocked':True,'block_category':analysis['reason'],'sources':[],'time':round(time.time()-t0,2),'sentiment_analysis':analysis}
@@ -2342,7 +2394,16 @@ async def _patched_query_agentic_v7(self, question, k=8):
         if not resolved_symbols:
             answer = "I could not resolve a current NSE ticker for this market query after yfinance validation and LLM fallback. Please provide the current NSE symbol, and I will fetch live data.\n\nConsult a SEBI-registered advisor."
             return {'question':question,'answer':answer,'blocked':False,'mode':'market_symbol_resolution_failed','is_market':True,'sentiment_analysis':analysis,'tool_calls':[],'sources':[],'retrieved_docs':[],'kg_stats':{'entities':self.kg.number_of_nodes(),'relationships':self.kg.number_of_edges()},'time':round(time.time()-t0,2)}
-        tool_calls = [{'tool':'portfolio_multi_agent','query':question,'symbols':resolved_symbols}]
+        # screener is primary for single-stock price/info queries — fast and direct.
+        # portfolio_multi_agent is backup only (triggered below if screener returns nothing).
+        ql_check = question.lower()
+        single_stock_query = len(resolved_symbols) == 1 and any(
+            k in ql_check for k in ['price','share price','stock price','today','current','pe','pe ratio','market cap','52 week','fundamentals']
+        )
+        if single_stock_query:
+            tool_calls = [{'tool':'screener','symbol':resolved_symbols[0]}]
+        else:
+            tool_calls = [{'tool':'portfolio_multi_agent','query':question,'symbols':resolved_symbols}]
     elif analysis['workflow'] == 'portfolio_multi_agent':
         resolved_symbols = self.router._symbols(question) if hasattr(self, 'router') else []
         if not resolved_symbols:
@@ -2357,6 +2418,14 @@ async def _patched_query_agentic_v7(self, question, k=8):
     live_docs = []
     if tool_calls:
         live_docs = await self.mcp_client.execute(tool_calls)
+        # If screener returned nothing, retry once with portfolio_multi_agent as backup.
+        if not live_docs and len(tool_calls) == 1 and tool_calls[0].get('tool') == 'screener':
+            sym = tool_calls[0].get('symbol','')
+            print(f"screener returned nothing for {sym} — falling back to portfolio_multi_agent")
+            fallback_calls = [{'tool':'portfolio_multi_agent','query':question,'symbols':[sym]}]
+            live_docs = await self.mcp_client.execute(fallback_calls)
+            if live_docs:
+                tool_calls = fallback_calls
         if not live_docs and any(tc.get('tool') in {'portfolio_multi_agent','screener','amfi_nav'} for tc in tool_calls):
             answer = "I could not fetch live market data from the selected market tool, so I will not answer this market query from unrelated RAG documents. Please retry or provide a more specific symbol/fund name.\n\nConsult a SEBI-registered advisor."
             return {'question':question,'answer':answer,'blocked':False,'mode':'live_market_tool_failed','is_market':analysis['intent']=='market','sentiment_analysis':analysis,'tool_calls':[tc.get('tool') for tc in tool_calls],'sources':[],'retrieved_docs':[],'kg_stats':{'entities':self.kg.number_of_nodes(),'relationships':self.kg.number_of_edges()},'time':round(time.time()-t0,2)}

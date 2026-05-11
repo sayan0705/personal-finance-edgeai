@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 
 from app.api.config import get, load_config
+from app.api.llm_client import LLMClient
 from app.api.orchestrator import FinEdgeAPIOrchestrator, GuardrailError
 from app.api.schemas import (
     ChatRequest,
@@ -45,6 +46,18 @@ app.add_middleware(
 )
 
 _orchestrator = FinEdgeAPIOrchestrator()
+_llm_client = LLMClient()
+
+# Patterns that identify OpenWebUI internal system prompts (follow-up generation,
+# title generation, etc.). These must bypass BanyanTree and go straight to the LLM
+# — running them through the RAG pipeline causes garbage symbol extraction loops.
+_OPENWEBUI_BYPASS_MARKERS = (
+    "### Task:",
+    "### Chat History:",
+    '"follow_ups"',
+    "Generate a concise, 3-5 word title",
+    "Identify the primary language",
+)
 
 # ── Auth dependency ────────────────────────────────────────────────────────────
 
@@ -109,6 +122,19 @@ async def chat_completions(request: ChatRequest) -> StreamingResponse | ChatResp
     request_id = f"chatcmpl-{uuid.uuid4().hex[:8]}"
 
     logger.info(f"[{request_id}] chat request — messages={len(request.messages)} stream={request.stream}")
+
+    # Detect OpenWebUI internal prompts (follow-up generation, title generation, etc.)
+    # and bypass BanyanTree entirely — send straight to LLM to avoid garbage symbol loops.
+    last_content = (request.messages[-1].content if request.messages else "") or ""
+    if any(marker in last_content for marker in _OPENWEBUI_BYPASS_MARKERS):
+        logger.info(f"[{request_id}] OpenWebUI internal prompt detected — bypassing BanyanTree")
+        messages = [{"role": m.role, "content": m.content or ""} for m in request.messages]
+        reply = await _llm_client.complete(messages, max_tokens=512)
+        return ChatResponse(
+            id=request_id,
+            model=model,
+            choices=[Choice(message=MessageContent(role="assistant", content=reply), finish_reason="stop")],
+        )
 
     if request.stream:
         return StreamingResponse(

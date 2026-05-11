@@ -82,7 +82,7 @@ class BanyanTreeOriginalRAGService:
         """
 
         source_path = Path(__file__).resolve().parents[1] / "src" / "banyanTreev3_agentic.py"
-        text = source_path.read_text(encoding="utf-8")
+        text = source_path.read_text(encoding="utf-8-sig")  # utf-8-sig strips BOM if present
 
         server_marker = "# SINGLE CANONICAL MCP SERVER"
         imports_marker = "# LOCAL DEPENDENCY CHECK + IMPORTS"

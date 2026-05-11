@@ -1,0 +1,30 @@
+# Model cache — downloaded at runtime into the volume mount, never baked into image
+data/sentence_transformers/
+data/financial_kg/lightrag/
+models/
+
+# Python cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+.eggs/
+
+# Dev/test artifacts
+.git/
+.pytest_cache/
+**/.coverage
+htmlcov/
+dist/
+build/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local env
+.env
+*.log
