@@ -1,0 +1,8 @@
+{
+  "last_updated": "2026-05-11T06:18:35.873757",
+  "total_entities": 35,
+  "total_relationships": 98,
+  "total_documents": 10,
+  "lightrag_path": "/app/data/financial_kg/lightrag",
+  "graph_path": "/app/data/financial_kg/graph"
+}

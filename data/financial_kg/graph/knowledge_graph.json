@@ -1,0 +1,604 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "mumbai"
+    },
+    {
+      "id": "sip"
+    },
+    {
+      "id": "ppf"
+    },
+    {
+      "id": "delhi"
+    },
+    {
+      "id": "40,000/month"
+    },
+    {
+      "id": "1-day"
+    },
+    {
+      "id": "3-6 months of monthly"
+    },
+    {
+      "id": "nps"
+    },
+    {
+      "id": "15-year"
+    },
+    {
+      "id": "80ccd"
+    },
+    {
+      "id": "age 60"
+    },
+    {
+      "id": "eee"
+    },
+    {
+      "id": "1.25l"
+    },
+    {
+      "id": "ltcg"
+    },
+    {
+      "id": "5+ years"
+    },
+    {
+      "id": "80c"
+    },
+    {
+      "id": "3-year"
+    },
+    {
+      "id": "cagr"
+    },
+    {
+      "id": "elss"
+    },
+    {
+      "id": "87a"
+    },
+    {
+      "id": "10-12l"
+    },
+    {
+      "id": "0-3l"
+    },
+    {
+      "id": "epf"
+    },
+    {
+      "id": "80d"
+    },
+    {
+      "id": "health insurance"
+    },
+    {
+      "id": "500/month"
+    },
+    {
+      "id": "nav"
+    },
+    {
+      "id": "monthly"
+    },
+    {
+      "id": "equity"
+    },
+    {
+      "id": "25+ years"
+    },
+    {
+      "id": "50,000/month"
+    },
+    {
+      "id": "sgb"
+    },
+    {
+      "id": "fd"
+    },
+    {
+      "id": "sebi"
+    },
+    {
+      "id": "rbi"
+    }
+  ],
+  "links": [
+    {
+      "weight": 1,
+      "source": "mumbai",
+      "target": "sip"
+    },
+    {
+      "weight": 3,
+      "source": "mumbai",
+      "target": "ppf"
+    },
+    {
+      "weight": 1,
+      "source": "mumbai",
+      "target": "delhi"
+    },
+    {
+      "weight": 3,
+      "source": "sip",
+      "target": "ppf"
+    },
+    {
+      "weight": 1,
+      "source": "sip",
+      "target": "delhi"
+    },
+    {
+      "weight": 1,
+      "source": "sip",
+      "target": "500/month"
+    },
+    {
+      "weight": 1,
+      "source": "sip",
+      "target": "1.25l"
+    },
+    {
+      "weight": 2,
+      "source": "sip",
+      "target": "nav"
+    },
+    {
+      "weight": 1,
+      "source": "sip",
+      "target": "ltcg"
+    },
+    {
+      "weight": 1,
+      "source": "sip",
+      "target": "monthly"
+    },
+    {
+      "weight": 3,
+      "source": "ppf",
+      "target": "delhi"
+    },
+    {
+      "weight": 15,
+      "source": "ppf",
+      "target": "nps"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "15-year"
+    },
+    {
+      "weight": 3,
+      "source": "ppf",
+      "target": "80ccd"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "age 60"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "eee"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "epf"
+    },
+    {
+      "weight": 1,
+      "source": "ppf",
+      "target": "80d"
+    },
+    {
+      "weight": 1,
+      "source": "ppf",
+      "target": "80c"
+    },
+    {
+      "weight": 1,
+      "source": "ppf",
+      "target": "health insurance"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "equity"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "25+ years"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "50,000/month"
+    },
+    {
+      "weight": 2,
+      "source": "ppf",
+      "target": "monthly"
+    },
+    {
+      "weight": 3,
+      "source": "ppf",
+      "target": "sgb"
+    },
+    {
+      "weight": 3,
+      "source": "ppf",
+      "target": "fd"
+    },
+    {
+      "weight": 1,
+      "source": "40,000/month",
+      "target": "1-day"
+    },
+    {
+      "weight": 1,
+      "source": "40,000/month",
+      "target": "3-6 months of monthly"
+    },
+    {
+      "weight": 1,
+      "source": "1-day",
+      "target": "3-6 months of monthly"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "15-year"
+    },
+    {
+      "weight": 6,
+      "source": "nps",
+      "target": "80ccd"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "age 60"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "eee"
+    },
+    {
+      "weight": 6,
+      "source": "nps",
+      "target": "epf"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "80d"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "80c"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "health insurance"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "equity"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "25+ years"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "50,000/month"
+    },
+    {
+      "weight": 3,
+      "source": "nps",
+      "target": "monthly"
+    },
+    {
+      "weight": 1,
+      "source": "15-year",
+      "target": "80ccd"
+    },
+    {
+      "weight": 1,
+      "source": "15-year",
+      "target": "age 60"
+    },
+    {
+      "weight": 1,
+      "source": "15-year",
+      "target": "eee"
+    },
+    {
+      "weight": 1,
+      "source": "80ccd",
+      "target": "age 60"
+    },
+    {
+      "weight": 1,
+      "source": "80ccd",
+      "target": "eee"
+    },
+    {
+      "weight": 2,
+      "source": "80ccd",
+      "target": "epf"
+    },
+    {
+      "weight": 1,
+      "source": "80ccd",
+      "target": "80d"
+    },
+    {
+      "weight": 1,
+      "source": "80ccd",
+      "target": "80c"
+    },
+    {
+      "weight": 1,
+      "source": "80ccd",
+      "target": "health insurance"
+    },
+    {
+      "weight": 1,
+      "source": "age 60",
+      "target": "eee"
+    },
+    {
+      "weight": 2,
+      "source": "1.25l",
+      "target": "ltcg"
+    },
+    {
+      "weight": 1,
+      "source": "1.25l",
+      "target": "5+ years"
+    },
+    {
+      "weight": 1,
+      "source": "1.25l",
+      "target": "80c"
+    },
+    {
+      "weight": 1,
+      "source": "1.25l",
+      "target": "3-year"
+    },
+    {
+      "weight": 1,
+      "source": "1.25l",
+      "target": "cagr"
+    },
+    {
+      "weight": 1,
+      "source": "1.25l",
+      "target": "elss"
+    },
+    {
+      "weight": 1,
+      "source": "1.25l",
+      "target": "500/month"
+    },
+    {
+      "weight": 2,
+      "source": "1.25l",
+      "target": "nav"
+    },
+    {
+      "weight": 1,
+      "source": "1.25l",
+      "target": "monthly"
+    },
+    {
+      "weight": 1,
+      "source": "ltcg",
+      "target": "5+ years"
+    },
+    {
+      "weight": 1,
+      "source": "ltcg",
+      "target": "80c"
+    },
+    {
+      "weight": 1,
+      "source": "ltcg",
+      "target": "3-year"
+    },
+    {
+      "weight": 1,
+      "source": "ltcg",
+      "target": "cagr"
+    },
+    {
+      "weight": 1,
+      "source": "ltcg",
+      "target": "elss"
+    },
+    {
+      "weight": 1,
+      "source": "ltcg",
+      "target": "500/month"
+    },
+    {
+      "weight": 2,
+      "source": "ltcg",
+      "target": "nav"
+    },
+    {
+      "weight": 1,
+      "source": "ltcg",
+      "target": "monthly"
+    },
+    {
+      "weight": 1,
+      "source": "5+ years",
+      "target": "80c"
+    },
+    {
+      "weight": 1,
+      "source": "5+ years",
+      "target": "3-year"
+    },
+    {
+      "weight": 1,
+      "source": "5+ years",
+      "target": "cagr"
+    },
+    {
+      "weight": 1,
+      "source": "5+ years",
+      "target": "elss"
+    },
+    {
+      "weight": 1,
+      "source": "80c",
+      "target": "3-year"
+    },
+    {
+      "weight": 1,
+      "source": "80c",
+      "target": "cagr"
+    },
+    {
+      "weight": 1,
+      "source": "80c",
+      "target": "elss"
+    },
+    {
+      "weight": 2,
+      "source": "80c",
+      "target": "epf"
+    },
+    {
+      "weight": 1,
+      "source": "80c",
+      "target": "80d"
+    },
+    {
+      "weight": 1,
+      "source": "80c",
+      "target": "health insurance"
+    },
+    {
+      "weight": 1,
+      "source": "3-year",
+      "target": "cagr"
+    },
+    {
+      "weight": 1,
+      "source": "3-year",
+      "target": "elss"
+    },
+    {
+      "weight": 1,
+      "source": "cagr",
+      "target": "elss"
+    },
+    {
+      "weight": 1,
+      "source": "87a",
+      "target": "10-12l"
+    },
+    {
+      "weight": 1,
+      "source": "87a",
+      "target": "0-3l"
+    },
+    {
+      "weight": 1,
+      "source": "10-12l",
+      "target": "0-3l"
+    },
+    {
+      "weight": 2,
+      "source": "epf",
+      "target": "80d"
+    },
+    {
+      "weight": 2,
+      "source": "epf",
+      "target": "health insurance"
+    },
+    {
+      "weight": 1,
+      "source": "80d",
+      "target": "health insurance"
+    },
+    {
+      "weight": 2,
+      "source": "500/month",
+      "target": "nav"
+    },
+    {
+      "weight": 1,
+      "source": "500/month",
+      "target": "monthly"
+    },
+    {
+      "weight": 2,
+      "source": "nav",
+      "target": "monthly"
+    },
+    {
+      "weight": 1,
+      "source": "monthly",
+      "target": "equity"
+    },
+    {
+      "weight": 1,
+      "source": "monthly",
+      "target": "25+ years"
+    },
+    {
+      "weight": 1,
+      "source": "monthly",
+      "target": "50,000/month"
+    },
+    {
+      "weight": 1,
+      "source": "equity",
+      "target": "25+ years"
+    },
+    {
+      "weight": 1,
+      "source": "equity",
+      "target": "50,000/month"
+    },
+    {
+      "weight": 1,
+      "source": "25+ years",
+      "target": "50,000/month"
+    },
+    {
+      "weight": 1,
+      "source": "sgb",
+      "target": "fd"
+    },
+    {
+      "weight": 2,
+      "source": "sebi",
+      "target": "rbi"
+    }
+  ]
+}

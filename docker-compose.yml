@@ -41,13 +41,13 @@ services:
     container_name: banyantree-api
     env_file: .env
     environment:
-      - LLM_BASE_URL=${LLM_BASE_URL:-http://95.253.220.115:63084/v1}
-      - LLM_API_KEY=${LLM_API_KEY:-BANYAN_TREE_LLM_API_KEY}
-      - LLM_MODEL=${LLM_MODEL:-Qwen/Qwen3-8B}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.fireworks.ai/inference/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-your_api_key_here}
+      - LLM_MODEL=${LLM_MODEL:-accounts/fireworks/models/qwen3-8b}
       - BANYANTREE_LLM_PROVIDER=api
-      - BANYANTREE_API_MODEL=${LLM_MODEL:-Qwen/Qwen3-8B}
-      - BANYANTREE_API_BASE_URL=${LLM_BASE_URL:-http://95.253.220.115:63084/v1}
-      - BANYANTREE_API_KEY=${LLM_API_KEY:-BANYAN_TREE_LLM_API_KEY}
+      - BANYANTREE_API_MODEL=${LLM_MODEL:-accounts/fireworks/models/qwen3-8b}
+      - BANYANTREE_API_BASE_URL=${LLM_BASE_URL:-https://api.fireworks.ai/inference/v1}
+      - BANYANTREE_API_KEY=${LLM_API_KEY:-your_api_key_here}
       - BANYANTREE_SKIP_MCP_BOOTSTRAP=1
       - BANYANTREE_MCP_BASE=http://mcp-tools:8010
       - BANYANTREE_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
@@ -90,12 +90,19 @@ services:
       - OPENAI_API_BASE_URL=http://api:8000/v1
       - OPENAI_API_KEY=${API_KEY:-finedge-local-key-change-me}
       - WEBUI_AUTH=false
-      - DEFAULT_MODELS=${LLM_MODEL:-Qwen/Qwen3-8B}
       - ENABLE_OLLAMA_API=false
+      - ENABLE_RAG_WEB_SEARCH=false
+      - ENABLE_IMAGE_GENERATION=false
+      - USER_AGENT=BanyanTree-FinEdge/1.0
       - RAG_EMBEDDING_ENGINE=openai
       - RAG_OPENAI_API_BASE_URL=http://api:8000/v1
       - RAG_OPENAI_API_KEY=${API_KEY:-finedge-local-key-change-me}
       - RAG_EMBEDDING_MODEL=text-embedding-ada-002
+      - AUDIO_STT_ENGINE=
+      - AUDIO_TTS_ENGINE=
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_AUTOCOMPLETE_GENERATION=false
+      - WHISPER_MODEL=
     volumes:
       - openwebui-data:/app/backend/data
     ports:

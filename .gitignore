@@ -72,6 +72,9 @@ lightning_logs/
 # Data (raw + processed — too large for git; use DVC or similar)
 data/raw/
 data/processed/
+data/sentence_transformers/
+data/hf_cache/
+data/memory/
 
 # Logs
 logs/

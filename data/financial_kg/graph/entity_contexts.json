@@ -1,0 +1,464 @@
+{
+  "mumbai": [
+    {
+      "title": "50-30-20 Budgeting Rule",
+      "snippet": "50-30-20 rule: 50% Needs (rent, groceries, EMIs), 30% Wants (dining, travel), 20% Savings (SIP, PPF, emergency fund). Mumbai/Delhi: 55-60% for needs.",
+      "type": "NER_GPE",
+      "timestamp": "2026-05-11T06:18:35.628081"
+    }
+  ],
+  "sip": [
+    {
+      "title": "50-30-20 Budgeting Rule",
+      "snippet": "50-30-20 rule: 50% Needs (rent, groceries, EMIs), 30% Wants (dining, travel), 20% Savings (SIP, PPF, emergency fund). Mumbai/Delhi: 55-60% for needs.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.628110"
+    },
+    {
+      "title": "SIP Investment Guide",
+      "snippet": "SIP means fixed monthly auto-debit into mutual funds. Rupee cost averaging means low NAV gives more units. SIP can start from Rs 500/month. LTCG above Rs 1.25L is taxed at 12.5%.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.800431"
+    }
+  ],
+  "ppf": [
+    {
+      "title": "50-30-20 Budgeting Rule",
+      "snippet": "50-30-20 rule: 50% Needs (rent, groceries, EMIs), 30% Wants (dining, travel), 20% Savings (SIP, PPF, emergency fund). Mumbai/Delhi: 55-60% for needs.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.628116"
+    },
+    {
+      "title": "50-30-20 Budgeting Rule",
+      "snippet": "50-30-20 rule: 50% Needs (rent, groceries, EMIs), 30% Wants (dining, travel), 20% Savings (SIP, PPF, emergency fund). Mumbai/Delhi: 55-60% for needs.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.628123"
+    },
+    {
+      "title": "50-30-20 Budgeting Rule",
+      "snippet": "50-30-20 rule: 50% Needs (rent, groceries, EMIs), 30% Wants (dining, travel), 20% Savings (SIP, PPF, emergency fund). Mumbai/Delhi: 55-60% for needs.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.628204"
+    },
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.697911"
+    },
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.697915"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.773248"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.773267"
+    },
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.826463"
+    },
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.826476"
+    },
+    {
+      "title": "Investment Return Warnings",
+      "snippet": "No investment guarantees returns. FD may offer around 6.5-7.5%, PPF around 7.1%, and SGB gives 2.5% plus gold movement. Red flag: any scheme promising more than 12% guaranteed.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.853730"
+    },
+    {
+      "title": "Investment Return Warnings",
+      "snippet": "No investment guarantees returns. FD may offer around 6.5-7.5%, PPF around 7.1%, and SGB gives 2.5% plus gold movement. Red flag: any scheme promising more than 12% guaranteed.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.853733"
+    },
+    {
+      "title": "Investment Return Warnings",
+      "snippet": "No investment guarantees returns. FD may offer around 6.5-7.5%, PPF around 7.1%, and SGB gives 2.5% plus gold movement. Red flag: any scheme promising more than 12% guaranteed.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.853740"
+    }
+  ],
+  "delhi": [
+    {
+      "title": "50-30-20 Budgeting Rule",
+      "snippet": "50-30-20 rule: 50% Needs (rent, groceries, EMIs), 30% Wants (dining, travel), 20% Savings (SIP, PPF, emergency fund). Mumbai/Delhi: 55-60% for needs.",
+      "type": "NER_GPE",
+      "timestamp": "2026-05-11T06:18:35.628128"
+    }
+  ],
+  "40,000/month": [
+    {
+      "title": "Emergency Fund Guide",
+      "snippet": "Target 3-6 months of monthly expenses. Best: liquid mutual funds, 1-day redemption, around 7% returns. Rs 40,000/month expenses means target Rs 1.2L to Rs 2.4L.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.665757"
+    }
+  ],
+  "1-day": [
+    {
+      "title": "Emergency Fund Guide",
+      "snippet": "Target 3-6 months of monthly expenses. Best: liquid mutual funds, 1-day redemption, around 7% returns. Rs 40,000/month expenses means target Rs 1.2L to Rs 2.4L.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.665780"
+    }
+  ],
+  "3-6 months of monthly": [
+    {
+      "title": "Emergency Fund Guide",
+      "snippet": "Target 3-6 months of monthly expenses. Best: liquid mutual funds, 1-day redemption, around 7% returns. Rs 40,000/month expenses means target Rs 1.2L to Rs 2.4L.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.665785"
+    }
+  ],
+  "nps": [
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.697865"
+    },
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.697901"
+    },
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.697908"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.773207"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.773241"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.773244"
+    },
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.826431"
+    },
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.826456"
+    },
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.826466"
+    }
+  ],
+  "15-year": [
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.697887"
+    }
+  ],
+  "80ccd": [
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "TAX_SECTION",
+      "timestamp": "2026-05-11T06:18:35.697892"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "TAX_SECTION",
+      "timestamp": "2026-05-11T06:18:35.773237"
+    }
+  ],
+  "age 60": [
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.697897"
+    }
+  ],
+  "eee": [
+    {
+      "title": "PPF vs NPS Comparison",
+      "snippet": "PPF: 15-year lock-in, around 7.1% returns, EEE tax-free, Rs 1.5L limit, zero risk. NPS: till age 60, 8-12% market-linked, extra Rs 50,000 under 80CCD(1B). Use both: PPF safety plus NPS retirement dedu",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.697904"
+    }
+  ],
+  "1.25l": [
+    {
+      "title": "ELSS Tax-Saving Funds",
+      "snippet": "ELSS: 3-year lock-in, deduction up to Rs 1.5L under 80C. Returns 12-15% CAGR over 5+ years. LTCG above Rs 1.25L taxed at 12.5%.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.720415"
+    },
+    {
+      "title": "SIP Investment Guide",
+      "snippet": "SIP means fixed monthly auto-debit into mutual funds. Rupee cost averaging means low NAV gives more units. SIP can start from Rs 500/month. LTCG above Rs 1.25L is taxed at 12.5%.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.800423"
+    }
+  ],
+  "ltcg": [
+    {
+      "title": "ELSS Tax-Saving Funds",
+      "snippet": "ELSS: 3-year lock-in, deduction up to Rs 1.5L under 80C. Returns 12-15% CAGR over 5+ years. LTCG above Rs 1.25L taxed at 12.5%.",
+      "type": "FINANCIAL_TERM",
+      "timestamp": "2026-05-11T06:18:35.720433"
+    },
+    {
+      "title": "SIP Investment Guide",
+      "snippet": "SIP means fixed monthly auto-debit into mutual funds. Rupee cost averaging means low NAV gives more units. SIP can start from Rs 500/month. LTCG above Rs 1.25L is taxed at 12.5%.",
+      "type": "FINANCIAL_TERM",
+      "timestamp": "2026-05-11T06:18:35.800435"
+    }
+  ],
+  "5+ years": [
+    {
+      "title": "ELSS Tax-Saving Funds",
+      "snippet": "ELSS: 3-year lock-in, deduction up to Rs 1.5L under 80C. Returns 12-15% CAGR over 5+ years. LTCG above Rs 1.25L taxed at 12.5%.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.720437"
+    }
+  ],
+  "80c": [
+    {
+      "title": "ELSS Tax-Saving Funds",
+      "snippet": "ELSS: 3-year lock-in, deduction up to Rs 1.5L under 80C. Returns 12-15% CAGR over 5+ years. LTCG above Rs 1.25L taxed at 12.5%.",
+      "type": "TAX_SECTION",
+      "timestamp": "2026-05-11T06:18:35.720441"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "TAX_SECTION",
+      "timestamp": "2026-05-11T06:18:35.773251"
+    }
+  ],
+  "3-year": [
+    {
+      "title": "ELSS Tax-Saving Funds",
+      "snippet": "ELSS: 3-year lock-in, deduction up to Rs 1.5L under 80C. Returns 12-15% CAGR over 5+ years. LTCG above Rs 1.25L taxed at 12.5%.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.720444"
+    }
+  ],
+  "cagr": [
+    {
+      "title": "ELSS Tax-Saving Funds",
+      "snippet": "ELSS: 3-year lock-in, deduction up to Rs 1.5L under 80C. Returns 12-15% CAGR over 5+ years. LTCG above Rs 1.25L taxed at 12.5%.",
+      "type": "FINANCIAL_TERM",
+      "timestamp": "2026-05-11T06:18:35.720448"
+    }
+  ],
+  "elss": [
+    {
+      "title": "ELSS Tax-Saving Funds",
+      "snippet": "ELSS: 3-year lock-in, deduction up to Rs 1.5L under 80C. Returns 12-15% CAGR over 5+ years. LTCG above Rs 1.25L taxed at 12.5%.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.720451"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.773264"
+    }
+  ],
+  "87a": [
+    {
+      "title": "Income Tax Slabs FY 2024-25 New Regime",
+      "snippet": "Rs 0-3L NIL, Rs 3-7L 5%, Rs 7-10L 10%, Rs 10-12L 15%, Rs 12-15L 20%, above Rs 15L 30%. 87A rebate: up to Rs 7L equals zero tax. Standard deduction Rs 75,000 for salaried.",
+      "type": "TAX_SECTION",
+      "timestamp": "2026-05-11T06:18:35.749665"
+    }
+  ],
+  "10-12l": [
+    {
+      "title": "Income Tax Slabs FY 2024-25 New Regime",
+      "snippet": "Rs 0-3L NIL, Rs 3-7L 5%, Rs 7-10L 10%, Rs 10-12L 15%, Rs 12-15L 20%, above Rs 15L 30%. 87A rebate: up to Rs 7L equals zero tax. Standard deduction Rs 75,000 for salaried.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.749686"
+    }
+  ],
+  "0-3l": [
+    {
+      "title": "Income Tax Slabs FY 2024-25 New Regime",
+      "snippet": "Rs 0-3L NIL, Rs 3-7L 5%, Rs 7-10L 10%, Rs 10-12L 15%, Rs 12-15L 20%, above Rs 15L 30%. 87A rebate: up to Rs 7L equals zero tax. Standard deduction Rs 75,000 for salaried.",
+      "type": "NER_MONEY",
+      "timestamp": "2026-05-11T06:18:35.749691"
+    }
+  ],
+  "epf": [
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.773228"
+    },
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.773254"
+    }
+  ],
+  "80d": [
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "TAX_SECTION",
+      "timestamp": "2026-05-11T06:18:35.773233"
+    }
+  ],
+  "health insurance": [
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "INSURANCE_TYPE",
+      "timestamp": "2026-05-11T06:18:35.773258"
+    }
+  ],
+  "home loan": [
+    {
+      "title": "Legal Tax Saving Strategies",
+      "snippet": "80C Rs 1.5L: ELSS, PPF, EPF, home loan principal. 80D Rs 25,000: health insurance. 80CCD(1B) Rs 50,000: NPS extra. 24(b) Rs 2L: home loan interest. <PERSON> common deductions around Rs 4.25L.",
+      "type": "LOAN_TYPE",
+      "timestamp": "2026-05-11T06:18:35.773261"
+    }
+  ],
+  "500/month": [
+    {
+      "title": "SIP Investment Guide",
+      "snippet": "SIP means fixed monthly auto-debit into mutual funds. Rupee cost averaging means low NAV gives more units. SIP can start from Rs 500/month. LTCG above Rs 1.25L is taxed at 12.5%.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.800403"
+    }
+  ],
+  "nav": [
+    {
+      "title": "SIP Investment Guide",
+      "snippet": "SIP means fixed monthly auto-debit into mutual funds. Rupee cost averaging means low NAV gives more units. SIP can start from Rs 500/month. LTCG above Rs 1.25L is taxed at 12.5%.",
+      "type": "FINANCIAL_TERM",
+      "timestamp": "2026-05-11T06:18:35.800427"
+    },
+    {
+      "title": "SIP Investment Guide",
+      "snippet": "SIP means fixed monthly auto-debit into mutual funds. Rupee cost averaging means low NAV gives more units. SIP can start from Rs 500/month. LTCG above Rs 1.25L is taxed at 12.5%.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.800438"
+    }
+  ],
+  "monthly": [
+    {
+      "title": "SIP Investment Guide",
+      "snippet": "SIP means fixed monthly auto-debit into mutual funds. Rupee cost averaging means low NAV gives more units. SIP can start from Rs 500/month. LTCG above Rs 1.25L is taxed at 12.5%.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.800441"
+    },
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.826473"
+    }
+  ],
+  "equity": [
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.826453"
+    }
+  ],
+  "25+ years": [
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.826460"
+    }
+  ],
+  "50,000/month": [
+    {
+      "title": "Retirement Planning India",
+      "snippet": "Corpus equals monthly expenses times 12 times 25 using the 4% rule. Rs 50,000/month expenses implies around Rs 1.5 Cr needed. With 25+ years, an example allocation is 70% equity, 20% NPS, and 10% PPF.",
+      "type": "NER_DATE",
+      "timestamp": "2026-05-11T06:18:35.826470"
+    }
+  ],
+  "sgb": [
+    {
+      "title": "Investment Return Warnings",
+      "snippet": "No investment guarantees returns. FD may offer around 6.5-7.5%, PPF around 7.1%, and SGB gives 2.5% plus gold movement. Red flag: any scheme promising more than 12% guaranteed.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.853710"
+    }
+  ],
+  "fd": [
+    {
+      "title": "Investment Return Warnings",
+      "snippet": "No investment guarantees returns. FD may offer around 6.5-7.5%, PPF around 7.1%, and SGB gives 2.5% plus gold movement. Red flag: any scheme promising more than 12% guaranteed.",
+      "type": "INVESTMENT_TYPE",
+      "timestamp": "2026-05-11T06:18:35.853737"
+    }
+  ],
+  "sebi": [
+    {
+      "title": "Ponzi Scheme Warning Signs",
+      "snippet": "Warning signs include guaranteed high returns, no SEBI or RBI registration, and pressure to recruit. Investors can report issues at scores.sebi.gov.in.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.873151"
+    }
+  ],
+  "rbi": [
+    {
+      "title": "Ponzi Scheme Warning Signs",
+      "snippet": "Warning signs include guaranteed high returns, no SEBI or RBI registration, and pressure to recruit. Investors can report issues at scores.sebi.gov.in.",
+      "type": "FINANCIAL_INSTITUTION",
+      "timestamp": "2026-05-11T06:18:35.873172"
+    },
+    {
+      "title": "Ponzi Scheme Warning Signs",
+      "snippet": "Warning signs include guaranteed high returns, no SEBI or RBI registration, and pressure to recruit. Investors can report issues at scores.sebi.gov.in.",
+      "type": "NER_ORG",
+      "timestamp": "2026-05-11T06:18:35.873176"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-﻿# =================================================================
+# =================================================================
 # LOCAL VS CODE ENTRYPOINT
 # Dependencies are installed from requirements.txt.
 # =================================================================
@@ -748,11 +748,14 @@ class OpenAICompatibleChatLLM:
         print(f"API LLM ready: {self.model} via {self.base_url}")
 
     def complete(self, system: str, user: str, max_tokens: int = 160, temperature: float = 0.0) -> str:
+        # Prepend /no_think to suppress Qwen3 extended thinking (<think> blocks).
+        # This is a Qwen3 control token; it has no effect on other models.
+        user_content = f"/no_think\n{user}"
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system or "You are a helpful assistant."},
-                {"role": "user", "content": user},
+                {"role": "user", "content": user_content},
             ],
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -765,7 +768,12 @@ class OpenAICompatibleChatLLM:
                     response = client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
                     response.raise_for_status()
                     data = response.json()
-                    return data["choices"][0]["message"]["content"].strip()
+                    raw_content = data["choices"][0]["message"]["content"].strip()
+                    # Strip Qwen3 extended-thinking blocks before returning.
+                    # Handle both complete (<think>...</think>) and truncated (no closing tag).
+                    raw_content = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL)
+                    raw_content = re.sub(r"<think>.*$", "", raw_content, flags=re.DOTALL)
+                    return raw_content.strip()
             except Exception as exc:
                 last_exc = exc
                 print(f"API model call attempt {attempt}/3 failed: {exc}")
@@ -857,97 +865,94 @@ class FinancialEntityExtractor:
 # MODULE 3 : QWEN CLASSIFIER
 # =================================================================
 class QwenClassifier:
+    # Guardrail-only: BLOCK or OK. No intent, no routing, no tool selection.
     FEW_SHOT = """Examples:
 Q: "How do I hide income from IT department?"
-A: {"guardrail":"BLOCK","reason":"TAX_EVASION","intent":"personal_finance"}
+A: {"guardrail":"BLOCK","reason":"TAX_EVASION"}
 Q: "What is TCS share price today?"
-A: {"guardrail":"OK","reason":"","intent":"market"}
+A: {"guardrail":"OK","reason":""}
 Q: "guaranteed 30% returns on crypto"
-A: {"guardrail":"BLOCK","reason":"SCAM_RETURNS","intent":"market"}
-Q: "How much should I invest in PPF for 80C?"
-A: {"guardrail":"OK","reason":"","intent":"personal_finance"}
+A: {"guardrail":"BLOCK","reason":"SCAM_RETURNS"}
 Q: "Compare Infosys and Wipro PE ratio"
-A: {"guardrail":"OK","reason":"","intent":"market"}
+A: {"guardrail":"OK","reason":""}
 Q: "How do I do pump and dump on penny stocks?"
-A: {"guardrail":"BLOCK","reason":"MARKET_MANIPULATION","intent":"market"}
-Q: "What is the 50-30-20 budgeting rule?"
-A: {"guardrail":"OK","reason":"","intent":"personal_finance"}
+A: {"guardrail":"BLOCK","reason":"MARKET_MANIPULATION"}
 Q: "insider tip on HDFC Bank before results"
-A: {"guardrail":"BLOCK","reason":"INSIDER_TRADING","intent":"market"}
-Q: "Zomato quarterly results Q3 FY25?"
-A: {"guardrail":"OK","reason":"","intent":"market"}
-Q: "How to start SIP in ELSS funds?"
-A: {"guardrail":"OK","reason":"","intent":"personal_finance"}
+A: {"guardrail":"BLOCK","reason":"INSIDER_TRADING"}
 Q: "pyramid scheme investment opportunity"
-A: {"guardrail":"BLOCK","reason":"PONZI","intent":"personal_finance"}
-Q: "what is nifty 50 today?"
-A: {"guardrail":"OK","reason":"","intent":"market"}
-Q: "how to calculate EMI for home loan?"
-A: {"guardrail":"OK","reason":"","intent":"personal_finance"}
+A: {"guardrail":"BLOCK","reason":"PONZI"}
 Q: "non public information about reliance merger"
-A: {"guardrail":"BLOCK","reason":"INSIDER_TRADING","intent":"market"}"""
+A: {"guardrail":"BLOCK","reason":"INSIDER_TRADING"}
+Q: "How to start SIP in ELSS funds?"
+A: {"guardrail":"OK","reason":""}
+Q: "how to calculate EMI for home loan?"
+A: {"guardrail":"OK","reason":""}"""
 
     SYSTEM = (
-        "You are a financial query classifier for an Indian finance app.\n"
-        "For every query output ONLY a single compact JSON with exactly these keys:\n"
+        "You are a safety guardrail for an Indian personal finance app.\n"
+        "Output ONLY a compact JSON with exactly two keys:\n"
         "  guardrail : OK or BLOCK\n"
-        "  reason    : if BLOCK, one of: TAX_EVASION, SCAM_RETURNS, INSIDER_TRADING, MARKET_MANIPULATION, PONZI Ã¢â‚¬â€ else empty string\n"
-        "  intent    : market (live stocks/share price/PE/results/index/NAV) or personal_finance (SIP/PPF/tax/budget/EMI/insurance/retirement)\n"
-        "Output ONLY the JSON object. No explanation. No markdown."
+        "  reason    : if BLOCK, one of: TAX_EVASION, SCAM_RETURNS, INSIDER_TRADING, "
+        "MARKET_MANIPULATION, PONZI -- else empty string\n"
+        "BLOCK only for illegal/fraudulent/unethical requests. "
+        "All legitimate finance questions (stocks, SIP, tax, loans, budgeting) are OK.\n"
+        "Output ONLY the JSON. No explanation. No markdown."
     )
 
     GUARDRAIL_FALLBACK = (
         "I cannot help with that request.\n\n"
-        "I can assist with: budgeting, legal tax saving (80C/80D/NPS), goal-based investing, mutual funds, debt management, and reading live stock/market data.\n\n"
+        "I can assist with: budgeting, legal tax saving (80C/80D/NPS), goal-based investing, "
+        "mutual funds, debt management, and reading live stock/market data.\n\n"
         "For personalized advice, consult a SEBI-registered advisor."
     )
 
     def __init__(self, tokenizer, generator, device: str, api_client=None):
-        self.tokenizer = tokenizer
-        self.generator = generator
-        self.device    = device
+        self.tokenizer  = tokenizer
+        self.generator  = generator
+        self.device     = device
         self.api_client = api_client
-        print("API Classifier ready" if self.api_client else "Qwen2.5 Classifier ready (reuses generator weights)")
+        print("API Guardrail ready" if self.api_client else "Qwen2.5 Guardrail ready")
 
     def classify(self, query: str) -> dict:
         user_msg = f"{self.FEW_SHOT}\n\nNow classify:\nQ: \"{query}\"\nA:"
         if self.api_client:
-            raw = self.api_client.complete(self.SYSTEM, user_msg, max_tokens=80, temperature=0.0)
+            raw = self.api_client.complete(self.SYSTEM, user_msg, max_tokens=400, temperature=0.0)
         else:
             prompt = build_qwen_prompt(self.tokenizer, self.SYSTEM, user_msg)
-            inputs = self.tokenizer(prompt, return_tensors="pt", max_length=2000, truncation=True).to(self.device)
+            inputs = self.tokenizer(prompt, return_tensors="pt", max_length=2000,
+                                    truncation=True).to(self.device)
             with torch.no_grad():
-                outputs = self.generator.generate(**inputs, max_new_tokens=40, temperature=0.0, do_sample=False,
-                                                  eos_token_id=self.tokenizer.eos_token_id, pad_token_id=self.tokenizer.eos_token_id)
-            raw = self.tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-        print(f"Classifier: {raw}")
+                outputs = self.generator.generate(
+                    **inputs, max_new_tokens=30, temperature=0.0, do_sample=False,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    pad_token_id=self.tokenizer.eos_token_id)
+            raw = self.tokenizer.decode(
+                outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+        print(f"Guardrail: {raw}")
         return self._parse(raw, query)
 
     def _parse(self, raw: str, query: str) -> dict:
+        # After think-block stripping in complete(), raw should be clean JSON.
+        # We intentionally do NOT do keyword matching on raw text — the LLM's
+        # <think> reasoning may contain words like "scam" or "insider" while
+        # correctly concluding the query is OK. Keyword fallback caused false BLOCKs.
         try:
-            match = re.search(r'\{[^}]+\}', raw, re.DOTALL)
-            if match:
-                result    = json.loads(match.group())
+            m = re.search(r'\{[^}]+\}', raw, re.DOTALL)
+            if m:
+                result    = json.loads(m.group())
                 guardrail = str(result.get("guardrail", "OK")).upper()
-                intent    = str(result.get("intent", "personal_finance")).lower()
                 reason    = str(result.get("reason", ""))
-                if guardrail not in ("OK", "BLOCK"): guardrail = "OK"
-                if intent not in ("market", "personal_finance"): intent = "personal_finance"
-                return {"guardrail": guardrail, "reason": reason, "intent": intent}
-        except Exception: pass
+                if guardrail not in ("OK", "BLOCK"):
+                    guardrail = "OK"
+                return {"guardrail": guardrail, "reason": reason}
+        except Exception:
+            pass
+        # No JSON found (e.g. think block exceeded token limit, stripped to empty).
+        # Default to OK — it is safer to let a legitimate query through than to
+        # false-block based on heuristics. Real BLOCK cases always return explicit JSON.
+        print("Guardrail parse failed — defaulting to OK")
+        return {"guardrail": "OK", "reason": ""}
 
-        print("Classifier parse failed Ã¢â‚¬â€ keyword fallback")
-        raw_l = raw.lower()
-        guardrail, reason = "OK", ""
-        for kw, cat in [("tax_evasion", "TAX_EVASION"), ("scam", "SCAM_RETURNS"), ("insider", "INSIDER_TRADING"),
-                        ("manipulation", "MARKET_MANIPULATION"), ("ponzi", "PONZI"), ("block", "TAX_EVASION")]:
-            if kw in raw_l:
-                guardrail, reason = "BLOCK", cat
-                break
-
-        market_kw = {"market", "stock", "share", "nse", "bse", "price", "pe", "nifty", "sensex", "nav"}
-        intent = "market" if market_kw & set(query.lower().split()) else "personal_finance"
-        return {"guardrail": guardrail, "reason": reason, "intent": intent}
 
 # =================================================================
 # MODULE 4 : QWEN MCP TOOL SELECTOR
@@ -993,7 +998,7 @@ A: [{"tool":"screener","symbol":"NIFTY"}]"""
         system_msg = "You are a tool selector. Given a user query, output ONLY a JSON array of tool calls needed. No explanation. No markdown."
         user_msg = f"{self.TOOL_MANIFEST}\n\nQuery: {query}\nTool calls needed:"
         if self.api_client:
-            raw = self.api_client.complete(system_msg, user_msg, max_tokens=160, temperature=0.0)
+            raw = self.api_client.complete(system_msg, user_msg, max_tokens=400, temperature=0.0)
         else:
             prompt = build_qwen_prompt(self.tokenizer, system_msg, user_msg)
             inputs = self.tokenizer(prompt, return_tensors="pt", max_length=2000, truncation=True).to(self.device)
@@ -1729,11 +1734,26 @@ class FINANCIAL_HIERARCHICAL_LIGHT_RAG:
         if self.memory.history:
             last = self.memory.history[-1]
             memory_ctx = f"Previous: Q: {last['question'][:60]} A: {last['answer'][:100]}..."
-        system_msg = "You are FinSage, a financial assistant for Indian users. Answer using ONLY the documents provided. Be direct and concise. 2-4 sentences maximum. If the document has [LIVE DATA], use those exact numbers. End with: Consult a SEBI-registered advisor."
+        is_complex = _is_complex_query(query)
+        if is_complex:
+            system_msg = (
+                "You are FinSage, a financial assistant for Indian users. "
+                "Answer ALL parts of the user's question using ONLY the documents provided. "
+                "Use [LIVE DATA] numbers exactly. Use brief headers for multiple sub-questions. "
+                "Cover each sub-question in 2-3 sentences. "
+                "End with: Consult a SEBI-registered advisor before investing."
+            )
+        else:
+            system_msg = (
+                "You are FinSage, a financial assistant for Indian users. "
+                "Answer using ONLY the documents provided. Be direct and concise. 2-4 sentences maximum. "
+                "If the document has [LIVE DATA], use those exact numbers. "
+                "End with: Consult a SEBI-registered advisor."
+            )
         user_msg = f"{memory_ctx}\n\nDocuments:\n{context_str}\n\nQuestion: {query}"
         print("\nÃ°Å¸â€™Â¬ FinSage: ", end="", flush=True)
         if self.llm_client:
-            raw = self.llm_client.complete(system_msg, user_msg, max_tokens=160, temperature=0.1)
+            raw = self.llm_client.complete(system_msg, user_msg, max_tokens=512, temperature=0.1)
             print(raw)
         else:
             prompt = self._build_prompt(system_msg, user_msg)
@@ -2366,105 +2386,312 @@ class BanyanTreeMCPToolClient(EnhancedMCPToolClient):
         'goal_planner':'/tools/goal_planner',
         'portfolio_multi_agent':'/tools/portfolio_multi_agent',
     }
-async def _patched_query_agentic_v7(self, question, k=8):
-    t0 = time.time()
-    print(f"\n{'='*60}\nQ {question}\n{'='*60}")
-    analysis = self.sentiment_router.analyze(question)
-    # Deterministic override: if the rule-based router has high confidence this is a
-    # market query (company name alias hit or stock keywords), trust it over the LLM
-    # sentiment router which can misclassify mixed queries ("is it good to invest in X").
-    if hasattr(self, 'router') and analysis['intent'] != 'market':
-        det = self.router.classify(question)
-        if det.get('intent') == 'market' and det.get('confidence', 0) >= 0.7:
-            analysis['intent'] = 'market'
-            analysis['workflow'] = 'portfolio_multi_agent'
-            print(f"FLOW deterministic override: intent=market (confidence={det['confidence']}, source={det.get('route_source')})")
-    print(f"FLOW sentiment={analysis['sentiment']} | risk={analysis['risk_profile']} | urgency={analysis['urgency']} | intent={analysis['intent']} | workflow={analysis['workflow']}")
-    if analysis['guardrail'] == 'BLOCK':
-        blocked = {'question':question,'answer':self.classifier.GUARDRAIL_FALLBACK,'blocked':True,'block_category':analysis['reason'],'sources':[],'time':round(time.time()-t0,2),'sentiment_analysis':analysis}
-        print(f"FLOW blocked={analysis['reason']}")
-        print(f"ANSWER: {blocked['answer']}")
-        return blocked
-    tool_calls = []
-    ql = question.lower()
-    if any(x in ql for x in ['nav','mutual fund','elss']):
-        tool_calls = [{'tool':'amfi_nav','fund_filter':'ELSS' if 'elss' in ql else question[:60]}]
-    elif analysis['intent'] == 'market':
-        resolved_symbols = self.router._symbols(question) if hasattr(self, 'router') else []
-        if not resolved_symbols:
-            answer = "I could not resolve a current NSE ticker for this market query after yfinance validation and LLM fallback. Please provide the current NSE symbol, and I will fetch live data.\n\nConsult a SEBI-registered advisor."
-            return {'question':question,'answer':answer,'blocked':False,'mode':'market_symbol_resolution_failed','is_market':True,'sentiment_analysis':analysis,'tool_calls':[],'sources':[],'retrieved_docs':[],'kg_stats':{'entities':self.kg.number_of_nodes(),'relationships':self.kg.number_of_edges()},'time':round(time.time()-t0,2)}
-        # screener is primary for single-stock price/info queries — fast and direct.
-        # portfolio_multi_agent is backup only (triggered below if screener returns nothing).
-        ql_check = question.lower()
-        single_stock_query = len(resolved_symbols) == 1 and any(
-            k in ql_check for k in ['price','share price','stock price','today','current','pe','pe ratio','market cap','52 week','fundamentals']
+# =================================================================
+# REACT AGENTIC LOOP v8
+# Flow: PII redact -> guardrail (BLOCK/OK only) -> RAG+KG retrieval
+#       -> context sufficient? yes -> generate() directly
+#       -> no -> LLM-driven ReAct loop (Thought->Action->Observation)
+#                up to _REACT_MAX_ITERATIONS, then force generate()
+#       -> output guardrail -> memory
+# =================================================================
+
+_REACT_MAX_ITERATIONS = 8
+
+_REACT_SYSTEM = (
+    "You are FinSage, a ReAct reasoning agent for Indian personal finance.\n"
+    "Each step output EXACTLY one of:\n\n"
+    "Option A - need a tool:\n"
+    "Thought: <reasoning>\n"
+    "Action: <tool_name>\n"
+    "Action Input: <JSON object>\n\n"
+    "Option B - enough information:\n"
+    "Thought: <reasoning>\n"
+    "Final Answer: <2-5 sentences, cite sources, end with "
+    "'Consult a SEBI-registered advisor.'>\n\n"
+    "Rules: call a tool only when RAG context is clearly insufficient. "
+    "Never hallucinate returns or guarantees. Indian finance context only."
+)
+
+_REACT_TOOL_MANIFEST = (
+    "Tool: screener\n"
+    "When: share price, PE, fundamentals, market cap for a specific NSE stock\n"
+    'Action Input: {"symbol": "TICKER"}\n\n'
+    "Tool: amfi_nav\n"
+    "When: mutual fund NAV or scheme prices\n"
+    'Action Input: {"fund_filter": "fund name or category"}\n\n'
+    "Tool: sip_calculator\n"
+    "When: SIP maturity amount -- needs monthly amount, rate, years\n"
+    'Action Input: {"query": "full user query"}\n\n'
+    "Tool: emi_calculator\n"
+    "When: loan EMI, total interest -- needs principal, rate, tenure\n"
+    'Action Input: {"query": "full user query"}\n\n'
+    "Tool: portfolio_health\n"
+    "When: portfolio allocation review, rebalancing\n"
+    'Action Input: {"query": "full user query"}\n\n'
+    "Tool: goal_planner\n"
+    "When: corpus / retirement planning with time horizon\n"
+    'Action Input: {"query": "full user query"}\n\n'
+    "Tool: portfolio_multi_agent\n"
+    "When: compare multiple stocks, equity portfolio advice\n"
+    'Action Input: {"query": "full user query", "symbols": ["TCS", "INFY"]}\n\n'
+    "Tool: search_rag\n"
+    "When: tax concepts (80C/80D/new vs old regime), PPF, NPS, insurance, budgeting\n"
+    'Action Input: {"query": "specific search query"}'
+)
+
+
+
+
+def _build_react_prompt(query: str, docs: list, observations: list) -> str:
+    parts = []
+    if docs:
+        parts.append("=== RAG+KG Context ===")
+        for i, d in enumerate(docs[:4], 1):
+            title   = d.get("title", f"Doc{i}")
+            snippet = d.get("content", "")[:350]
+            parts.append(f"[{i}] {title}\n{snippet}")
+    if observations:
+        parts.append("=== Tool Observations so far ===")
+        parts.extend(observations)
+    parts.append(f"=== Available Tools ===\n{_REACT_TOOL_MANIFEST}")
+    parts.append(f"=== User Question ===\n{query}")
+    parts.append("Output Thought + Action/Action Input  OR  Thought + Final Answer:")
+    return "\n\n".join(parts)
+
+
+def _parse_react_response(raw: str) -> dict:
+    # Empty string means think-block consumed entire token budget and was stripped.
+    # Signal a retry rather than treating it as an empty final answer.
+    if not raw.strip():
+        return {"type": "retry", "content": ""}
+
+    fa = re.search(r'Final Answer\s*:\s*(.*)', raw, re.DOTALL | re.IGNORECASE)
+    if fa:
+        content = fa.group(1).strip()
+        # Guard against empty final answer (think-block edge case)
+        if content:
+            return {"type": "final_answer", "content": content}
+
+    act = re.search(r'Action\s*:\s*(\w+)', raw, re.IGNORECASE)
+    inp = re.search(r'Action Input\s*:\s*(\{[^}]+\})', raw, re.DOTALL | re.IGNORECASE)
+    if act:
+        tool_name = act.group(1).strip().lower()
+        tool_input: dict = {}
+        if inp:
+            try:
+                tool_input = json.loads(inp.group(1))
+            except Exception:
+                tool_input = {"query": raw[:200]}
+        return {"type": "action", "tool_call": {"tool": tool_name, **tool_input}}
+
+    # Non-empty but unstructured — treat as final answer
+    return {"type": "final_answer", "content": raw.strip()}
+
+
+def _is_complex_query(query: str) -> bool:
+    """Detect multi-part / analytical questions that benefit from extended thinking."""
+    q = query.lower()
+    multi_part = query.count("?") >= 2
+    analytical_kw = any(k in q for k in [
+        "why", "analyze", "analyse", "compare", "should i", "is it good",
+        "worth investing", "reason", "explain", "strategy", "outlook",
+        "recommend", "advice", "better", "downtrend", "falling", "going down",
+    ])
+    return multi_part or analytical_kw
+
+
+async def _react_loop(self, query, initial_docs, community_context, reasoning_paths, max_iterations):
+    """
+    ReAct engine: Thought -> Action -> Observation -> repeat until Final Answer.
+
+    Tool-call dedup: if the LLM repeats the exact same tool+key input that
+    already produced an Observation, we intercept and force Final Answer synthesis
+    instead of executing the same call again (prevents infinite screener loops).
+
+    Thinking mode:
+    - Tool-selection iterations: /no_think (fast, decisive)
+    - Final answer synthesis (generate fallback): full thinking when query is complex
+    """
+    accumulated_docs = list(initial_docs)
+    observations: list = []
+    all_tool_calls: list = []
+    seen_tool_calls: set = set()   # dedup key: (tool, primary_input_value)
+    answer = None
+
+    for iteration in range(max_iterations):
+        print(f"REACT iter={iteration + 1}/{max_iterations}")
+        raw = self.llm_client.complete(
+            _REACT_SYSTEM,
+            _build_react_prompt(query, accumulated_docs, observations),
+            max_tokens=800, temperature=0.0,
         )
-        if single_stock_query:
-            tool_calls = [{'tool':'screener','symbol':resolved_symbols[0]}]
-        else:
-            tool_calls = [{'tool':'portfolio_multi_agent','query':question,'symbols':resolved_symbols}]
-    elif analysis['workflow'] == 'portfolio_multi_agent':
-        resolved_symbols = self.router._symbols(question) if hasattr(self, 'router') else []
-        if not resolved_symbols:
-            answer = "I could not resolve a current NSE ticker for this portfolio query after yfinance validation and LLM fallback. Please provide the current NSE symbol, and I will fetch live data.\n\nConsult a SEBI-registered advisor."
-            return {'question':question,'answer':answer,'blocked':False,'mode':'market_symbol_resolution_failed','is_market':True,'sentiment_analysis':analysis,'tool_calls':[],'sources':[],'retrieved_docs':[],'kg_stats':{'entities':self.kg.number_of_nodes(),'relationships':self.kg.number_of_edges()},'time':round(time.time()-t0,2)}
-        tool_calls = [{'tool':'portfolio_multi_agent','query':question,'symbols':resolved_symbols}]
-    else:
-        tool_calls = self.unified_tool_selector.select_tools(question)
-        if not tool_calls and analysis['workflow'] == 'search_rag':
-            tool_calls = [{'tool':'search_rag','query':question}]
-    print(f"FLOW tool_calls={[tc.get('tool') for tc in tool_calls]}")
-    live_docs = []
-    if tool_calls:
-        live_docs = await self.mcp_client.execute(tool_calls)
-        # If screener returned nothing, retry once with portfolio_multi_agent as backup.
-        if not live_docs and len(tool_calls) == 1 and tool_calls[0].get('tool') == 'screener':
-            sym = tool_calls[0].get('symbol','')
-            print(f"screener returned nothing for {sym} — falling back to portfolio_multi_agent")
-            fallback_calls = [{'tool':'portfolio_multi_agent','query':question,'symbols':[sym]}]
-            live_docs = await self.mcp_client.execute(fallback_calls)
-            if live_docs:
-                tool_calls = fallback_calls
-        if not live_docs and any(tc.get('tool') in {'portfolio_multi_agent','screener','amfi_nav'} for tc in tool_calls):
-            answer = "I could not fetch live market data from the selected market tool, so I will not answer this market query from unrelated RAG documents. Please retry or provide a more specific symbol/fund name.\n\nConsult a SEBI-registered advisor."
-            return {'question':question,'answer':answer,'blocked':False,'mode':'live_market_tool_failed','is_market':analysis['intent']=='market','sentiment_analysis':analysis,'tool_calls':[tc.get('tool') for tc in tool_calls],'sources':[],'retrieved_docs':[],'kg_stats':{'entities':self.kg.number_of_nodes(),'relationships':self.kg.number_of_edges()},'time':round(time.time()-t0,2)}
+        print(f"REACT raw={raw[:220]!r}")
+        parsed = _parse_react_response(raw)
+
+        if parsed["type"] == "retry":
+            print(f"REACT empty response — retrying iter={iteration + 1}")
+            continue
+
+        if parsed["type"] == "final_answer":
+            answer = parsed["content"]
+            print(f"REACT final_answer at iter={iteration + 1}")
+            break
+
+        tc = parsed["tool_call"]
+        tool_name = tc.get("tool", "?")
+
+        # ── Dedup: derive a stable key from the most discriminating input value ──
+        dedup_val = tc.get("symbol") or tc.get("fund_filter") or tc.get("query", "")[:60]
+        dedup_key = (tool_name, dedup_val)
+
+        if dedup_key in seen_tool_calls:
+            # Same tool+input already produced an Observation — LLM is looping.
+            # Force it to synthesise from what it already has.
+            print(f"REACT dedup hit {dedup_key} — injecting force-answer instruction")
+            observations.append(
+                f"[SYSTEM] You already called {tool_name} with this input and received data. "
+                "Do NOT call the same tool again. Synthesise a Final Answer from the observations above."
+            )
+            # Give the LLM one more chance to output Final Answer
+            raw2 = self.llm_client.complete(
+                _REACT_SYSTEM,
+                _build_react_prompt(query, accumulated_docs, observations),
+                max_tokens=800, temperature=0.0,
+            )
+            parsed2 = _parse_react_response(raw2)
+            if parsed2["type"] == "final_answer" and parsed2["content"]:
+                answer = parsed2["content"]
+                print(f"REACT final_answer (after dedup nudge) at iter={iteration + 1}")
+                break
+            # Still looping — fall through to generate()
+            print(f"REACT still looping after nudge — breaking to generate()")
+            break
+
+        seen_tool_calls.add(dedup_key)
+        print(f"REACT action={tool_name} input={tc}")
+        all_tool_calls.append(tc)
+
+        live_docs = await self.mcp_client.execute([tc])
         if live_docs:
             self._snapshot_inject(live_docs)
-    docs, community_context, reasoning_paths = self.retrieve(question, k=k)
-    if live_docs:
-        self._snapshot_restore(); seen={d['title'] for d in docs}; docs=[d for d in live_docs if d['title'] not in seen] + docs
-    market_live_tools = {'portfolio_multi_agent', 'screener', 'amfi_nav'}
-    use_live_only = bool(live_docs and any(tc.get('tool') in market_live_tools for tc in tool_calls))
-    docs_for_answer = live_docs if use_live_only else docs[:6]
-    if use_live_only:
-        community_context, reasoning_paths = [], []
-        print("FLOW source_filter=live_market_only")
-    print(f"FLOW retrieved_sources={[d['title'] for d in docs_for_answer[:4]]}")
-    answer = self.generate(question, docs_for_answer, community_context, reasoning_paths)
+            extra_docs, _, _ = self.retrieve(query, k=4)
+            self._snapshot_restore()
+            seen = {d["title"] for d in accumulated_docs}
+            accumulated_docs = (
+                live_docs
+                + [d for d in extra_docs if d["title"] not in seen]
+                + accumulated_docs
+            )
+            observations.append(f"Observation [{tool_name}]: {live_docs[0]['content'][:300]}")
+        else:
+            observations.append(
+                f"Observation [{tool_name}]: No data returned. Try a different tool."
+            )
+
+    # ── Fallback: generate() with all accumulated docs ───────────────────────
+    if answer is None:
+        is_complex = _is_complex_query(query)
+        print(
+            f"REACT max_iterations reached — forcing generate() "
+            f"[thinking={'ON' if is_complex else 'OFF (no_think)'}]"
+        )
+        # For complex multi-part queries, let generate() use full extended thinking
+        # so the LLM reasons deeply before writing the summary.
+        # For simple queries, /no_think is already in the payload via complete().
+        if is_complex:
+            # Temporarily patch user content: strip /no_think for this one call
+            orig_complete = self.llm_client.complete
+
+            def _complete_with_thinking(system, user, max_tokens=512, temperature=0.1):
+                # Remove /no_think prefix so the model can think before answering
+                user_no_prefix = user.lstrip("/no_think").lstrip()
+                return orig_complete(system, user_no_prefix, max_tokens=1500, temperature=0.1)
+
+            self.llm_client.complete = _complete_with_thinking
+            answer = self.generate(query, accumulated_docs[:6], community_context, reasoning_paths)
+            self.llm_client.complete = orig_complete
+        else:
+            answer = self.generate(query, accumulated_docs[:6], community_context, reasoning_paths)
+
+    return answer, all_tool_calls, accumulated_docs
+
+
+async def _react_query_agentic(self, question: str, k: int = 8) -> dict:
+    t0 = time.time()
+    print(f"\n{'='*60}\nQ {question}\n{'='*60}")
+
+    # Step 1: PII redaction
+    redacted_q, pii_found = self.pii_redactor.redact(question)
+    if pii_found:
+        print(f"REACT pii_redacted={pii_found}")
+
+    # Step 2: Guardrail (BLOCK / OK only -- no intent, no routing)
+    classification = self.classifier.classify(redacted_q)
+    if classification["guardrail"] == "BLOCK":
+        print(f"REACT BLOCKED [{classification['reason']}]")
+        return {
+            "question": question, "answer": self.classifier.GUARDRAIL_FALLBACK,
+            "blocked": True, "block_category": classification["reason"],
+            "sources": [], "time": round(time.time() - t0, 2),
+        }
+
+    # Step 3: RAG+KG+PageIndex retrieval — always runs, enriches LLM context
+    # The retrieved docs are passed INTO the ReAct loop so the LLM can see them.
+    # The LLM itself decides: "RAG is enough → Final Answer" OR "need a tool → Action".
+    # We never bypass the LLM based on doc volume or keyword heuristics.
+    docs, community_context, reasoning_paths = self.retrieve(redacted_q, k=k)
+    print(f"REACT rag_retrieved={len(docs)} docs → passing to ReAct loop")
+
+    # Step 4: ReAct loop — LLM is always the decision-maker
+    #   • If RAG context is sufficient for the query → LLM outputs "Final Answer" in iter 1
+    #   • If live data / tool needed → LLM outputs "Action: <tool>" → executes → loops
+    #   • Fallback after max iterations → generate() with all accumulated docs
+    answer, all_tool_calls, all_docs = await _react_loop(
+        self, redacted_q, docs, community_context, reasoning_paths, _REACT_MAX_ITERATIONS
+    )
+    mode = "react_agentic"
+
+    # Step 5: Output guardrail
     out_safe, out_cat = self.output_guard.check(answer)
     if not out_safe:
+        print(f"REACT output_flagged=[{out_cat}]")
         answer += self.output_guard.DISCLAIMER
-    elapsed = round(time.time()-t0, 2)
-    mode = "mcp_portfolio_multi_agent" if tool_calls and tool_calls[0].get("tool") == "portfolio_multi_agent" else f"mcp_{analysis['workflow']}"
-    self.memory.add(question, answer, {'intent':analysis['intent'],'tool_calls':[tc.get('tool') for tc in tool_calls],'sentiment':analysis['sentiment'],'risk_profile':analysis['risk_profile'],'urgency':analysis['urgency']})
-    self.query_history.append({'question':question,'answer':answer,'time':elapsed,'retrieved_docs':[d['content'][:400] for d in docs_for_answer[:4]],'tool_calls':[tc.get('tool') for tc in tool_calls],'sentiment_analysis':analysis})
-    print(f"FLOW mode={mode} | elapsed={elapsed}s")
-    print(f"ANSWER: {answer}")
-    return {'question':question,'answer':answer,'blocked':False,'mode':mode,'is_market':analysis['intent']=='market','sentiment_analysis':analysis,'tool_calls':[tc.get('tool') for tc in tool_calls],'sources':[d['title'] for d in docs_for_answer[:6]],'retrieved_docs':[d['content'][:400] for d in docs_for_answer[:4]],'kg_stats':{'entities':self.kg.number_of_nodes(),'relationships':self.kg.number_of_edges()},'time':elapsed}
 
-_ORIG_PATCHED_INIT_V7 = FINANCIAL_HIERARCHICAL_LIGHT_RAG.__init__
-def _patched_init_v7(self, kg_db_path='finsage_kg_database'):
-    _ORIG_PATCHED_INIT_V7(self, kg_db_path)
-    self.sentiment_router = QwenSentimentAnalyzer(self.tokenizer, self.generator, self.device, getattr(self, "llm_client", None))
-    self.unified_tool_selector = QwenUnifiedToolSelectorV7(self.tokenizer, self.generator, self.device, getattr(self, "llm_client", None))
-    if not hasattr(self, 'tool_registry'):
+    # Step 6: Memory + history
+    elapsed = round(time.time() - t0, 2)
+    self.memory.add(question, answer, {"tool_calls": [tc.get("tool") for tc in all_tool_calls]})
+    self.query_history.append({
+        "question": question, "answer": answer, "time": elapsed, "mode": mode,
+        "retrieved_docs": [d["content"][:400] for d in all_docs[:4]],
+        "tool_calls": [tc.get("tool") for tc in all_tool_calls],
+    })
+    print(f"REACT mode={mode} | elapsed={elapsed}s")
+    print(f"ANSWER: {answer}")
+    return {
+        "question": question, "answer": answer, "blocked": False, "mode": mode,
+        "classifier": classification,
+        "tool_calls": [tc.get("tool") for tc in all_tool_calls],
+        "sources": [d["title"] for d in all_docs[:6]],
+        "retrieved_docs": [d["content"][:400] for d in all_docs[:4]],
+        "kg_stats": {"entities": self.kg.number_of_nodes(), "relationships": self.kg.number_of_edges()},
+        "time": elapsed,
+    }
+
+
+_ORIG_INIT_V7 = FINANCIAL_HIERARCHICAL_LIGHT_RAG.__init__
+
+
+def _patched_init_v7(self, kg_db_path="finsage_kg_database"):
+    _ORIG_INIT_V7(self, kg_db_path)
+    # mcp_client is the only new dependency needed by the ReAct loop
+    if not hasattr(self, "tool_registry"):
         self.tool_registry = ToolRegistry()
-    self.tool_registry.specs['portfolio_multi_agent'] = {'route':'market'}
+    self.tool_registry.specs["portfolio_multi_agent"] = {"route": "market"}
     self.mcp_client = BanyanTreeMCPToolClient(mcp_base=MCP_BASE)
 
+
 FINANCIAL_HIERARCHICAL_LIGHT_RAG.__init__ = _patched_init_v7
-FINANCIAL_HIERARCHICAL_LIGHT_RAG.query_agentic = _patched_query_agentic_v7
+FINANCIAL_HIERARCHICAL_LIGHT_RAG.query_agentic = _react_query_agentic
 
 # =================================================================
 # DEMO
