@@ -1,0 +1,26 @@
+# ── Smart base: reuse the already-built api image ───────────────────────────
+# The api image already contains ALL heavy packages:
+#   torch (CPU), transformers, sentence-transformers, faiss-cpu,
+#   rank-bm25, networkx, scikit-learn, spaCy + en_core_web_sm,
+#   presidio-analyzer, presidio-anonymizer, beautifulsoup4, lxml,
+#   fastapi, uvicorn, httpx, pydantic, loguru, yfinance
+#
+# kg-builder only adds the two packages the api does not have:
+#   pypdf   — PDF page extraction
+#   python-multipart — FastAPI file upload support
+#
+# Build time: ~30 seconds (vs 30+ minutes from python:3.11-slim)
+# No C-extension compilation → no bus error / shm issue.
+FROM personal-finance-edgeai-api:latest
+
+RUN pip install --no-cache-dir \
+    pypdf>=4.0.0 \
+    python-multipart>=0.0.9
+
+# ── Override entrypoint for kg-builder ──────────────────────────────────────
+ENV BANYANTREE_PAGEINDEX_OUTPUT_DIR=/app/data/financial_kg/pageindex/outputs
+ENV BANYANTREE_PAGEINDEX_STRUCTURES_DIR=/app/data/financial_kg/pageindex/structures
+
+EXPOSE 8020
+
+CMD ["uvicorn", "src.kg_builder_server:app", "--host", "0.0.0.0", "--port", "8020"]

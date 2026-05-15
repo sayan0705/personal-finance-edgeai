@@ -16,8 +16,8 @@ RUN pip install --no-cache-dir --timeout 300 \
     pyyaml>=6.0.1 \
     loguru>=0.7.0 \
     python-dotenv>=1.0.0 \
+    python-multipart>=0.0.9 \
     yfinance>=0.2.50
-
 # Pin numpy<2.0 before torch so pip never resolves numpy 2.x.
 # faiss-cpu==1.8.0 C extension was compiled against numpy 1.x ABI;
 # numpy 2.x removed numpy.core.multiarray which faiss requires at runtime.
@@ -44,7 +44,9 @@ RUN pip install --no-cache-dir --timeout 300 \
     lxml \
     nest_asyncio \
     presidio-analyzer \
-    presidio-anonymizer
+    presidio-anonymizer \
+    pypdf>=4.0.0 \
+    python-multipart>=0.0.9
 
 # en_core_web_sm — used by both BanyanTree NER (line 1353) and Presidio (configured via
 # NlpEngineProvider in FinancialPIIRedactor.__init__). Baked into image — no runtime download.

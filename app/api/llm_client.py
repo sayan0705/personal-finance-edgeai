@@ -47,13 +47,17 @@ class LLMClient:
         max_tokens: int | None = None,
         temperature: float | None = None,
     ) -> dict:
-        return {
+        body: dict = {
             "model": self._model,
             "messages": messages,
             "max_tokens": max_tokens or self._max_tokens,
             "temperature": temperature if temperature is not None else self._temperature,
-            "stream": stream,
         }
+        # Only include "stream" when streaming — omitting it (defaulting to non-streaming)
+        # avoids a 404 from Fireworks when "stream": false is sent explicitly.
+        if stream:
+            body["stream"] = True
+        return body
 
     async def complete(
         self,

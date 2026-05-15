@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from datetime import datetime
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from loguru import logger
@@ -14,6 +15,7 @@ from loguru import logger
 from app.api.config import get, load_config
 from app.api.llm_client import LLMClient
 from app.api.orchestrator import FinEdgeAPIOrchestrator, GuardrailError
+from agents.tools.document_store import save_uploaded_document
 from app.api.schemas import (
     ChatRequest,
     ChatResponse,
@@ -100,6 +102,14 @@ async def embeddings(request: dict) -> dict:
     return {"object": "list", "data": data, "model": request.get("model", "text-embedding-ada-002")}
 
 
+@app.post("/v1/documents/upload", dependencies=[Depends(_verify_api_key)])
+async def upload_document(file: UploadFile = File(...), session_id: str = Form(default="default")) -> dict:
+    """Store a private user document for later MCP document-tool analysis."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")
+    return save_uploaded_document(file.filename or "document", content, session_id=session_id)
+
 @app.get("/v1/models", response_model=ModelList, dependencies=[Depends(_verify_api_key)])
 async def list_models() -> ModelList:
     """Return available models (OpenAI-compatible)."""
@@ -129,6 +139,10 @@ async def chat_completions(request: ChatRequest) -> StreamingResponse | ChatResp
     if any(marker in last_content for marker in _OPENWEBUI_BYPASS_MARKERS):
         logger.info(f"[{request_id}] OpenWebUI internal prompt detected — bypassing BanyanTree")
         messages = [{"role": m.role, "content": m.content or ""} for m in request.messages]
+        # Prepend /no_think to the last user message so Qwen3 doesn't go into extended
+        # thinking mode and burn the token budget on internal follow-up/title generation.
+        if messages and messages[-1]["role"] == "user":
+            messages[-1]["content"] = f"/no_think\n{messages[-1]['content']}"
         reply = await _llm_client.complete(messages, max_tokens=512)
         return ChatResponse(
             id=request_id,
@@ -138,7 +152,7 @@ async def chat_completions(request: ChatRequest) -> StreamingResponse | ChatResp
 
     if request.stream:
         return StreamingResponse(
-            _stream_sse(request, session_id, request_id, model),
+            _stream_sse(request, session_id, request_id, model, request.document_ids),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -149,7 +163,7 @@ async def chat_completions(request: ChatRequest) -> StreamingResponse | ChatResp
     # Non-streaming: collect all chunks
     parts: list[str] = []
     try:
-        async for chunk in _orchestrator.stream_response(request.messages, session_id):
+        async for chunk in _orchestrator.stream_response(request.messages, session_id, request.document_ids):
             parts.append(chunk)
     except GuardrailError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -167,15 +181,38 @@ async def chat_completions(request: ChatRequest) -> StreamingResponse | ChatResp
     )
 
 
+
+@app.post("/internal/reload-kg")
+async def reload_kg() -> dict:
+    """Hot-reload the KG/FAISS/BM25 indices from the shared volume.
+
+    Called by the kg-builder container (port 8020) after a successful rebuild.
+    Resets the BanyanTree RAG singleton so the next incoming query triggers
+    _ensure_ready() which calls load_kg_database() from disk, transparently
+    picking up fresh FAISS vectors, KG nodes/edges, and BM25 index.
+
+    Internal endpoint: only reachable inside the Docker bridge network.
+    """
+    try:
+        from rag.banyantree_rag import get_banyantree_rag_service
+        service = get_banyantree_rag_service()
+        service._rag = None   # drop loaded instance; reloads on next query
+        logger.info("KG hot-reload triggered by kg-builder")
+        return {"status": "reload scheduled", "timestamp": datetime.utcnow().isoformat() + "Z"}
+    except Exception as exc:
+        logger.warning("KG reload failed to reset singleton: {}", exc)
+        return {"status": "reload_error", "detail": str(exc)}
+
 async def _stream_sse(
     request: ChatRequest,
     session_id: str,
     request_id: str,
     model: str,
+    document_ids: list[str] | None = None,
 ):
     """Async generator that yields SSE-formatted chunks."""
     try:
-        async for text_chunk in _orchestrator.stream_response(request.messages, session_id):
+        async for text_chunk in _orchestrator.stream_response(request.messages, session_id, document_ids):
             chunk = ChatResponseChunk(
                 id=request_id,
                 model=model,
