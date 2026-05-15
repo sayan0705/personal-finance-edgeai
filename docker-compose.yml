@@ -23,6 +23,8 @@ services:
       - BANYANTREE_USER_DOCS_DIR=/app/data/user_docs
     volumes:
       - ./data:/app/data
+      - ./agents:/app/agents:ro
+      - ./src:/app/src:ro
     ports:
       - "8010:8010"
     networks:
@@ -66,6 +68,9 @@ services:
       - BANYANTREE_USER_DOCS_DIR=/app/data/user_docs
       - BANYANTREE_PAGEINDEX_INPUT_DIR=/app/data/financial_kg/pageindex/inputs
       - FINSAGE_KG_PATH=/app/data/financial_kg/lightrag
+    command: >
+      sh -c "pip install --quiet --no-cache-dir 'python-multipart>=0.0.9' 'openpyxl>=3.1.0' &&
+             uvicorn app.api.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./configs:/app/configs:ro
       - ./data:/app/data

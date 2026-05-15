@@ -2474,13 +2474,20 @@ _REACT_SYSTEM = (
     "Uploaded-document evidence may appear only as redacted document profiles or redacted backend tool observations. "
     + _DOCUMENT_EVIDENCE_RULES
     + "Backend tools may use private raw data locally, but your reasoning must use only the returned redacted/safe observations. "
-    "Never hallucinate returns or guarantees. Indian finance context only."
+    "Never hallucinate returns or guarantees. Indian finance context only.\n\n"
+    "TOOL FAILURE RULES — if an Observation shows a tool error or failed lookup:\n"
+    "1. First try to CORRECT the input: use the exact NSE ticker symbol (e.g. HCLTECH not HCL, RELIANCE not Reliance Industries).\n"
+    "2. If correction is not possible, try a DIFFERENT tool that can answer the same question.\n"
+    "3. Only if all tool options are exhausted, give a Final Answer using your own general knowledge "
+    "with an explicit disclaimer: 'Live market data was unavailable; this is based on general knowledge only.'\n"
+    "NEVER immediately output Final Answer: data unavailable — always attempt at least one correction or alternative."
 )
 
 _REACT_TOOL_MANIFEST = (
     "Tool: screener\n"
     "When: share price, PE, fundamentals, market cap for a specific NSE stock\n"
-    'Action Input: {"symbol": "TICKER"}\n\n'
+    'Action Input: {"symbol": "NSE_TICKER"}  '
+    "— use the exact NSE ticker (HCLTECH not HCL, RELIANCE not Reliance, INFY not Infosys)\n\n"
     "Tool: amfi_nav\n"
     "When: mutual fund NAV or scheme prices\n"
     'Action Input: {"fund_filter": "fund name or category"}\n\n'
@@ -2673,10 +2680,24 @@ async def _react_loop(self, query, original_query, initial_docs, community_conte
                 + [d for d in extra_docs if d["title"] not in seen]
                 + accumulated_docs
             )
-            observations.append(f"Observation [{tool_name}]: {live_docs[0]['content'][:300]}")
+            content = live_docs[0]['content'][:300]
+            # Detect tool-level failures and inject a retry hint so the LLM
+            # doesn't immediately give up — it must try a correction or fallback.
+            _fail_signals = ("failed", "error", "unavailable", "unauthorized", "not found",
+                             "lookup failed", "could not", "unable to", "invalid")
+            if any(sig in content.lower() for sig in _fail_signals):
+                observations.append(
+                    f"Observation [{tool_name}]: {content}\n"
+                    f"[SYSTEM] The tool returned an error. Do NOT give up yet. "
+                    f"Next step: (1) retry with the correct NSE ticker (e.g. HCLTECH for HCL), "
+                    f"(2) try a different tool, or (3) answer from general knowledge with a disclaimer."
+                )
+            else:
+                observations.append(f"Observation [{tool_name}]: {content}")
         else:
             observations.append(
-                f"Observation [{tool_name}]: No data returned. Try a different tool."
+                f"Observation [{tool_name}]: No data returned.\n"
+                f"[SYSTEM] Try a different tool or answer from general knowledge with a disclaimer."
             )
 
     # ── Fallback: generate() with all accumulated docs ───────────────────────

@@ -2,11 +2,45 @@
 
 from __future__ import annotations
 
+import json
+import os
+from pathlib import Path
 from typing import Any
 
 import httpx
 
 from agents.tools.base import BaseTool
+
+
+def _load_nse_dict() -> dict[str, str]:
+    """Load company-name → NSE-ticker mapping from the shared data volume."""
+    path = Path(os.environ.get("BANYANTREE_FINANCIAL_KG_ROOT", "/app/data/financial_kg")) / "nse_ticker_dict.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return {k.lower(): v for k, v in data.get("tickers", {}).items()}
+    except Exception:
+        return {}
+
+_NSE_DICT: dict[str, str] = {}
+
+def _resolve_nse_ticker(symbol: str) -> str:
+    """Resolve a company name or partial ticker to the correct NSE ticker symbol.
+
+    e.g. "HCL" → "HCLTECH", "Infosys" → "INFY", already-correct "TCS" → "TCS".
+    Falls back to the original symbol uppercased if no match found.
+    """
+    global _NSE_DICT
+    if not _NSE_DICT:
+        _NSE_DICT = _load_nse_dict()
+    key = symbol.strip().lower()
+    # Exact match
+    if key in _NSE_DICT:
+        return _NSE_DICT[key]
+    # Prefix match (e.g. "hcl tech" matches "hcl technologies")
+    for name, ticker in _NSE_DICT.items():
+        if key in name or name in key:
+            return ticker
+    return symbol.upper()
 from agents.tools.banyantree_common import (
     age,
     allocation,
@@ -245,24 +279,34 @@ class ScreenerTool(BaseTool):
         return {"type": "object", "properties": {"symbol": {"type": "string"}}, "required": ["symbol"]}
 
     def execute(self, args: dict[str, Any]) -> dict[str, Any]:
-        symbol = str(args.get("symbol") or "").upper().replace(".NS", "")
-        if not symbol:
+        raw = str(args.get("symbol") or "").upper().replace(".NS", "").replace(".BO", "")
+        if not raw:
             return {"result": "No symbol provided."}
+        # Resolve company name → correct NSE ticker (e.g. HCL → HCLTECH)
+        symbol = _resolve_nse_ticker(raw)
         try:
             import yfinance as yf
 
+            # Do NOT pass a custom session — yfinance >=0.2.52 uses curl_cffi
+            # internally for TLS fingerprint mimicking; passing requests.Session breaks it.
             ticker = yf.Ticker(f"{symbol}.NS")
             info = ticker.fast_info
             price = getattr(info, "last_price", None) or getattr(info, "lastPrice", None)
             previous = getattr(info, "previous_close", None) or getattr(info, "previousClose", None)
+            if not price:
+                full = ticker.info or {}
+                price = full.get("currentPrice") or full.get("regularMarketPrice")
+                previous = full.get("previousClose") or previous
             change = ""
             if price and previous:
-                change = f" | Change: {(price - previous) / previous * 100:.2f}%"
+                change = f" | Change: {(float(price) - float(previous)) / float(previous) * 100:.2f}%"
+            if not price:
+                return {"symbol": symbol, "result": f"{symbol} price unavailable — market may be closed or data delayed."}
             return {
                 "symbol": symbol,
                 "price": price,
                 "previous_close": previous,
-                "result": f"{symbol} | NSE | Price: {fmt_inr(float(price or 0))}{change} | Source: yfinance",
+                "result": f"{symbol} | NSE | Price: {fmt_inr(float(price))}{change} | Source: yfinance",
             }
         except Exception as exc:
             return {"symbol": symbol, "result": f"{symbol} lookup failed: {exc}"}
