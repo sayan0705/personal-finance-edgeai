@@ -45,8 +45,12 @@ class FinEdgeAPIOrchestrator:
         self,
         messages: list[ChatMessage],
         session_id: str,
+        document_ids: list[str] | None = None,
     ) -> AsyncIterator[str]:
         user_text = self._extract_user_text(messages)
+        if document_ids:
+            refs = ", ".join(str(doc_id) for doc_id in document_ids)
+            user_text = f"{user_text}\n\nAttached document IDs: {refs}. Use document_profile first if document type is unclear."
 
         full_response_parts: list[str] = []
         async for chunk in self._agent.run(user_text, history=[], rag_context=""):

@@ -21,6 +21,7 @@ class ChatRequest(BaseModel):
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     top_p: Optional[float] = None
+    document_ids: list[str] = Field(default_factory=list)
 
 
 class DeltaContent(BaseModel):

@@ -1033,7 +1033,7 @@ class LangGraphToolApprovalMiddleware:
 
     DEFAULT_POLICY = {
         "requires_permission": ["NA"],
-        "auto_approved": ["search_rag", "sip_calculator", "emi_calculator", "portfolio_health", "goal_planner","portfolio_multi_agent", "screener", "amfi_nav"],
+        "auto_approved": ["search_rag", "sip_calculator", "emi_calculator", "portfolio_health", "goal_planner", "portfolio_multi_agent", "screener", "amfi_nav", "document_profile", "document_rag_search", "bank_statement_analyzer", "bill_parser", "credit_card_statement_analyzer", "salary_slip_parser"],
         "dangerous_patterns": [
             r"rm\s+-rf", r"del\s+/[sq]", r"format\s+[a-z]:", r"powershell", r"cmd\.exe",
             r"subprocess", r"os\.system", r"eval\s*\(", r"exec\s*\(", r"curl\s+", r"wget\s+",
@@ -1310,10 +1310,46 @@ class MCPToolClient:
             if not isinstance(result, dict) or not result:
                 continue
             tool = tc.get("tool", "unknown")
-            subject = tc.get("symbol", tc.get("query", tc.get("fund_filter", ""))[:40])
-            docs.append({"title": f"{tool}: {subject}", "content": result.get("summary", str(result)[:800]), "source": "mcp_tool"})
+            subject = tc.get("symbol", tc.get("document_id", tc.get("query", tc.get("fund_filter", ""))[:40]))
+            docs.append({
+                "title": f"{tool}: {subject}",
+                "content": _format_tool_observation(tool, result),
+                "source": "mcp_tool",
+                "metadata": {"source_type": "mcp_tool", "tool": tool},
+            })
         print(f"   MCPToolClient: {len(docs)} docs from {len(tool_calls)} requested tool calls")
         return docs
+
+
+def _format_tool_observation(tool: str, result: dict) -> str:
+    """Create the safe evidence string that ReAct/generate can see.
+
+    Document tools already redact string values in the MCP service. This helper
+    preserves useful structured fields (dates, amounts, risk flags) instead of
+    reducing the observation to only a one-line summary.
+    """
+    if not isinstance(result, dict):
+        return str(result)[:1200]
+
+    summary = result.get("summary") or result.get("result") or ""
+    hidden_keys = {"raw", "rows", "transactions", "stored_path", "private_parse"}
+    details = {
+        k: v
+        for k, v in result.items()
+        if k not in hidden_keys and k not in {"summary", "result"}
+        and v not in (None, "", [], {})
+    }
+    if not details:
+        return str(summary)[:1200]
+
+    try:
+        detail_text = json.dumps(details, ensure_ascii=False, default=str)
+    except Exception:
+        detail_text = str(details)
+
+    document_tool = tool.startswith("document_") or "statement" in tool or "parser" in tool
+    prefix = "[REDACTED DOCUMENT TOOL OBSERVATION]" if document_tool else "[LIVE DATA]"
+    return f"{prefix}\n{summary}\nDetails: {detail_text[:1800]}"
 # =================================================================
 # MODULE 6 Ã¢â‚¬â€ OUTPUT GUARDRAIL
 # =================================================================
@@ -1737,17 +1773,19 @@ class FINANCIAL_HIERARCHICAL_LIGHT_RAG:
         is_complex = _is_complex_query(query)
         if is_complex:
             system_msg = (
-                "You are FinSage, a financial assistant for Indian users. "
-                "Answer ALL parts of the user's question using ONLY the documents provided. "
-                "Use [LIVE DATA] numbers exactly. Use brief headers for multiple sub-questions. "
-                "Cover each sub-question in 2-3 sentences. "
+                "You are FinSage, a grounded financial assistant for Indian users. "
+                "Answer ALL parts using ONLY the evidence provided: RAG/KG context, live tool data, and redacted document-tool observations. "
+                + _DOCUMENT_EVIDENCE_RULES
+                + "Use brief headers for multiple sub-questions. "
+                "For uploaded-document questions, cover document findings, financial analysis, suggested actions, and risks. "
                 "End with: Consult a SEBI-registered advisor before investing."
             )
         else:
             system_msg = (
-                "You are FinSage, a financial assistant for Indian users. "
-                "Answer using ONLY the documents provided. Be direct and concise. 2-4 sentences maximum. "
-                "If the document has [LIVE DATA], use those exact numbers. "
+                "You are FinSage, a grounded financial assistant for Indian users. "
+                "Answer using ONLY the evidence provided: RAG/KG context, live tool data, and redacted document-tool observations. "
+                + _DOCUMENT_EVIDENCE_RULES
+                + "Be direct and concise. 2-4 sentences maximum. "
                 "End with: Consult a SEBI-registered advisor."
             )
         user_msg = f"{memory_ctx}\n\nDocuments:\n{context_str}\n\nQuestion: {query}"
@@ -2223,6 +2261,15 @@ class EnhancedMCPToolClient(MCPToolClient):
         if t=='goal_planner': return await self._goal(tc.get('query',''))
         return await super()._call_one(tc)
 
+_DOCUMENT_EVIDENCE_RULES = (
+    "Use uploaded-document evidence only when it appears as redacted document profiles "
+    "or redacted backend tool observations. "
+    "Never request, reveal, infer, or reconstruct raw PII from uploaded documents. "
+    "Do not quote raw account, card, policy, transaction, address, phone, email, PAN, Aadhaar, or UPI details. "
+    "Use exact figures only when they come from [LIVE DATA] or trusted backend tool observations; "
+    "otherwise state the limitation clearly. "
+)
+
 _ORIG_INIT=FINANCIAL_HIERARCHICAL_LIGHT_RAG.__init__
 def _patched_init(self, kg_db_path='finsage_kg_database'):
     _ORIG_INIT(self, kg_db_path); self.memory=EnhancedConversationMemory(max_turns=5); self.tool_registry=ToolRegistry(); self.router=DeterministicQueryRouter(self.tool_registry, self.tokenizer, self.generator, self.device, llm_client=getattr(self,'llm_client',None)); self.mcp_client=EnhancedMCPToolClient(mcp_base=MCP_BASE); self.mcp_client.register_rag(self)
@@ -2234,10 +2281,12 @@ def _patched_generate(self, query, docs, community_context, reasoning_paths):
     mem=self.memory.get_context(); comm='\n'.join(community_context[:3]) if community_context else ''; paths='\n'.join(' -> '.join(p) for p in reasoning_paths[:3]) if reasoning_paths else ''
     system_msg = (
         "You are FinSage, a grounded financial assistant for Indian users. "
-        "Use only the evidence provided. Prefer exact figures from [LIVE DATA]. "
-        "When the question has multiple parts (e.g. prices AND investment advice), address ALL parts. "
-        "Structure your answer: first state the live prices clearly, then give a balanced investment view "
-        "based on the data (momentum, PE, risk). Be specific and practical. "
+        "Use only the evidence provided: RAG/KG context, live tool data, and redacted document-tool observations. "
+        + _DOCUMENT_EVIDENCE_RULES
+        + "When the question has multiple parts, address ALL parts. "
+        "For uploaded-document questions, structure the answer as: document findings, financial analysis, suggested actions, and risks. "
+        "For live market questions, first state the live prices clearly, then give a balanced investment view based on the data. "
+        "Be specific and practical. Do not provide guaranteed returns. "
         "End with: Consult a SEBI-registered advisor before investing."
     )
     user_msg = f"{mem}\n\nDocuments:\n" + '\n\n'.join(ctx) + f"\n\n[Topic summaries]\n{comm}\n\n[Knowledge graph hints]\n{paths}\n\nQuestion: {query}"
@@ -2385,6 +2434,12 @@ class BanyanTreeMCPToolClient(EnhancedMCPToolClient):
         'portfolio_health':'/tools/portfolio_health',
         'goal_planner':'/tools/goal_planner',
         'portfolio_multi_agent':'/tools/portfolio_multi_agent',
+        'document_profile':'/tools/document_profile',
+        'document_rag_search':'/tools/document_rag_search',
+        'bank_statement_analyzer':'/tools/bank_statement_analyzer',
+        'bill_parser':'/tools/bill_parser',
+        'credit_card_statement_analyzer':'/tools/credit_card_statement_analyzer',
+        'salary_slip_parser':'/tools/salary_slip_parser',
     }
 # =================================================================
 # REACT AGENTIC LOOP v8
@@ -2396,6 +2451,13 @@ class BanyanTreeMCPToolClient(EnhancedMCPToolClient):
 # =================================================================
 
 _REACT_MAX_ITERATIONS = 8
+
+_PRIVATE_QUERY_TOOLS = {
+    "sip_calculator",
+    "emi_calculator",
+    "portfolio_health",
+    "goal_planner",
+}
 
 _REACT_SYSTEM = (
     "You are FinSage, a ReAct reasoning agent for Indian personal finance.\n"
@@ -2409,6 +2471,9 @@ _REACT_SYSTEM = (
     "Final Answer: <2-5 sentences, cite sources, end with "
     "'Consult a SEBI-registered advisor.'>\n\n"
     "Rules: call a tool only when RAG context is clearly insufficient. "
+    "Uploaded-document evidence may appear only as redacted document profiles or redacted backend tool observations. "
+    + _DOCUMENT_EVIDENCE_RULES
+    + "Backend tools may use private raw data locally, but your reasoning must use only the returned redacted/safe observations. "
     "Never hallucinate returns or guarantees. Indian finance context only."
 )
 
@@ -2434,6 +2499,24 @@ _REACT_TOOL_MANIFEST = (
     "Tool: portfolio_multi_agent\n"
     "When: compare multiple stocks, equity portfolio advice\n"
     'Action Input: {"query": "full user query", "symbols": ["TCS", "INFY"]}\n\n'
+    "Tool: document_profile\n"
+    "When: user asks about an uploaded/attached document and the document type or relevant extractor is unclear\n"
+    'Action Input: {"document_id": "doc_x", "query": "redacted user question"}\n\n'
+    "Tool: document_rag_search\n"
+    "When: find a specific item or phrase inside an uploaded document\n"
+    'Action Input: {"document_id": "doc_x", "query": "specific redacted search query", "top_k": 6}\n\n'
+    "Tool: bank_statement_analyzer\n"
+    "When: uploaded bank statement analysis for income, expenses, savings rate, EMI, recurring payments, SIP capacity\n"
+    'Action Input: {"document_id": "doc_x"}\n\n'
+    "Tool: bill_parser\n"
+    "When: uploaded insurance/utility/mobile/electricity bills; due date, amount due, premium, cover, fees\n"
+    'Action Input: {"document_id": "doc_x"}\n\n'
+    "Tool: credit_card_statement_analyzer\n"
+    "When: uploaded credit card statement analysis for total due, minimum due, utilization, fees, interest\n"
+    'Action Input: {"document_id": "doc_x"}\n\n'
+    "Tool: salary_slip_parser\n"
+    "When: uploaded salary slip analysis for gross pay, net pay, HRA, PF, TDS, annualized income\n"
+    'Action Input: {"document_id": "doc_x"}\n\n'
     "Tool: search_rag\n"
     "When: tax concepts (80C/80D/new vs old regime), PPF, NPS, insurance, budgeting\n"
     'Action Input: {"query": "specific search query"}'
@@ -2500,7 +2583,7 @@ def _is_complex_query(query: str) -> bool:
     return multi_part or analytical_kw
 
 
-async def _react_loop(self, query, initial_docs, community_context, reasoning_paths, max_iterations):
+async def _react_loop(self, query, original_query, initial_docs, community_context, reasoning_paths, max_iterations):
     """
     ReAct engine: Thought -> Action -> Observation -> repeat until Final Answer.
 
@@ -2569,9 +2652,17 @@ async def _react_loop(self, query, initial_docs, community_context, reasoning_pa
 
         seen_tool_calls.add(dedup_key)
         print(f"REACT action={tool_name} input={tc}")
-        all_tool_calls.append(tc)
 
-        live_docs = await self.mcp_client.execute([tc])
+        # Privacy boundary:
+        # - LLM/ReAct saw only the redacted query.
+        # - Backend-owned calculators/planners need the original numeric query
+        #   to compute correctly, so only those trusted tools receive it.
+        tool_tc = dict(tc)
+        if tool_tc.get("tool") in _PRIVATE_QUERY_TOOLS:
+            tool_tc["query"] = original_query
+        all_tool_calls.append(tool_tc)
+
+        live_docs = await self.mcp_client.execute([tool_tc])
         if live_docs:
             self._snapshot_inject(live_docs)
             extra_docs, _, _ = self.retrieve(query, k=4)
@@ -2647,7 +2738,7 @@ async def _react_query_agentic(self, question: str, k: int = 8) -> dict:
     #   • If live data / tool needed → LLM outputs "Action: <tool>" → executes → loops
     #   • Fallback after max iterations → generate() with all accumulated docs
     answer, all_tool_calls, all_docs = await _react_loop(
-        self, redacted_q, docs, community_context, reasoning_paths, _REACT_MAX_ITERATIONS
+        self, redacted_q, question, docs, community_context, reasoning_paths, _REACT_MAX_ITERATIONS
     )
     mode = "react_agentic"
 

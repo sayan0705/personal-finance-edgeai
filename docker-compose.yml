@@ -20,6 +20,7 @@ services:
       - BANYANTREE_RAW_DOCS_DIR=/app/data/financial_kg/raw_docs
       - BANYANTREE_SEED_DOCS_PATH=/app/data/financial_kg/raw_docs/seed/personal_finance_seed.json
       - BANYANTREE_PAGEINDEX_FLATTENED_DOCS_PATH=/app/data/financial_kg/raw_docs/pageindex/pageindex_flattened_docs.json
+      - BANYANTREE_USER_DOCS_DIR=/app/data/user_docs
     volumes:
       - ./data:/app/data
     ports:
@@ -62,6 +63,7 @@ services:
       - BANYANTREE_RAW_DOCS_DIR=/app/data/financial_kg/raw_docs
       - BANYANTREE_SEED_DOCS_PATH=/app/data/financial_kg/raw_docs/seed/personal_finance_seed.json
       - BANYANTREE_PAGEINDEX_FLATTENED_DOCS_PATH=/app/data/financial_kg/raw_docs/pageindex/pageindex_flattened_docs.json
+      - BANYANTREE_USER_DOCS_DIR=/app/data/user_docs
       - BANYANTREE_PAGEINDEX_INPUT_DIR=/app/data/financial_kg/pageindex/inputs
       - FINSAGE_KG_PATH=/app/data/financial_kg/lightrag
     volumes:

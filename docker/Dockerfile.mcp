@@ -6,14 +6,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir --timeout 300 \
     fastapi>=0.109.0 \
     "uvicorn[standard]>=0.27.0" \
     httpx>=0.26.0 \
     "pydantic>=2.0.0" \
     loguru>=0.7.0 \
-    yfinance>=0.2.50
+    yfinance>=0.2.50 \
+    pypdf>=4.0.0 \
+    pandas>=2.1.0 \
+    openpyxl>=3.1.0 \
+    "spacy>=3.7,<3.9" \
+    presidio-analyzer \
+    presidio-anonymizer
 
+RUN python -m spacy download en_core_web_sm
 COPY agents/ ./agents/
 COPY src/finsage_mcp_server.py ./src/finsage_mcp_server.py
 COPY data/ ./data/

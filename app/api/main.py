@@ -6,7 +6,7 @@ import json
 import time
 import uuid
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from loguru import logger
@@ -14,6 +14,7 @@ from loguru import logger
 from app.api.config import get, load_config
 from app.api.llm_client import LLMClient
 from app.api.orchestrator import FinEdgeAPIOrchestrator, GuardrailError
+from agents.tools.document_store import save_uploaded_document
 from app.api.schemas import (
     ChatRequest,
     ChatResponse,
@@ -100,6 +101,15 @@ async def embeddings(request: dict) -> dict:
     return {"object": "list", "data": data, "model": request.get("model", "text-embedding-ada-002")}
 
 
+
+@app.post("/v1/documents/upload", dependencies=[Depends(_verify_api_key)])
+async def upload_document(file: UploadFile = File(...), session_id: str = Form(default="default")) -> dict:
+    """Store a private user document for later MCP document-tool analysis."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")
+    return save_uploaded_document(file.filename or "document", content, session_id=session_id)
+
 @app.get("/v1/models", response_model=ModelList, dependencies=[Depends(_verify_api_key)])
 async def list_models() -> ModelList:
     """Return available models (OpenAI-compatible)."""
@@ -138,7 +148,7 @@ async def chat_completions(request: ChatRequest) -> StreamingResponse | ChatResp
 
     if request.stream:
         return StreamingResponse(
-            _stream_sse(request, session_id, request_id, model),
+            _stream_sse(request, session_id, request_id, model, request.document_ids),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -149,7 +159,7 @@ async def chat_completions(request: ChatRequest) -> StreamingResponse | ChatResp
     # Non-streaming: collect all chunks
     parts: list[str] = []
     try:
-        async for chunk in _orchestrator.stream_response(request.messages, session_id):
+        async for chunk in _orchestrator.stream_response(request.messages, session_id, request.document_ids):
             parts.append(chunk)
     except GuardrailError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -172,10 +182,11 @@ async def _stream_sse(
     session_id: str,
     request_id: str,
     model: str,
+    document_ids: list[str] | None = None,
 ):
     """Async generator that yields SSE-formatted chunks."""
     try:
-        async for text_chunk in _orchestrator.stream_response(request.messages, session_id):
+        async for text_chunk in _orchestrator.stream_response(request.messages, session_id, document_ids):
             chunk = ChatResponseChunk(
                 id=request_id,
                 model=model,

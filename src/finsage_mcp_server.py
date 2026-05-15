@@ -26,6 +26,14 @@ from agents.tools.banyantree_tools import (
     ScreenerTool,
     SearchRAGTool,
 )
+from agents.tools.document_tools import (
+    BankStatementAnalyzerTool,
+    BillParserTool,
+    CreditCardStatementAnalyzerTool,
+    DocumentProfileTool,
+    DocumentRAGSearchTool,
+    SalarySlipParserTool,
+)
 from agents.tools.registry import ToolRegistry
 
 
@@ -59,6 +67,12 @@ class PortfolioWorkflowRequest(BaseModel):
     symbols: Optional[list[str]] = None
 
 
+class DocumentRequest(BaseModel):
+    document_id: str
+    query: Optional[str] = ""
+    top_k: int = 6
+
+
 class ToolResponse(BaseModel):
     tool: str
     success: bool
@@ -75,6 +89,12 @@ TOOL_NAMES = [
     "portfolio_health",
     "goal_planner",
     "portfolio_multi_agent",
+    "document_profile",
+    "document_rag_search",
+    "bank_statement_analyzer",
+    "bill_parser",
+    "credit_card_statement_analyzer",
+    "salary_slip_parser",
 ]
 
 
@@ -89,6 +109,12 @@ def _registry() -> ToolRegistry:
         PortfolioHealthTool(),
         GoalPlannerTool(),
         PortfolioMultiAgentTool(),
+        DocumentProfileTool(),
+        DocumentRAGSearchTool(),
+        BankStatementAnalyzerTool(),
+        BillParserTool(),
+        CreditCardStatementAnalyzerTool(),
+        SalarySlipParserTool(),
     ):
         registry.register(tool)
     return registry
@@ -148,6 +174,36 @@ async def goal_planner(req: QueryRequest):
 async def portfolio_multi_agent(req: PortfolioWorkflowRequest):
     return _execute("portfolio_multi_agent", req.model_dump())
 
+
+
+@app.post("/tools/document_profile", response_model=ToolResponse)
+async def document_profile(req: DocumentRequest):
+    return _execute("document_profile", req.model_dump())
+
+
+@app.post("/tools/document_rag_search", response_model=ToolResponse)
+async def document_rag_search(req: DocumentRequest):
+    return _execute("document_rag_search", req.model_dump())
+
+
+@app.post("/tools/bank_statement_analyzer", response_model=ToolResponse)
+async def bank_statement_analyzer(req: DocumentRequest):
+    return _execute("bank_statement_analyzer", req.model_dump())
+
+
+@app.post("/tools/bill_parser", response_model=ToolResponse)
+async def bill_parser(req: DocumentRequest):
+    return _execute("bill_parser", req.model_dump())
+
+
+@app.post("/tools/credit_card_statement_analyzer", response_model=ToolResponse)
+async def credit_card_statement_analyzer(req: DocumentRequest):
+    return _execute("credit_card_statement_analyzer", req.model_dump())
+
+
+@app.post("/tools/salary_slip_parser", response_model=ToolResponse)
+async def salary_slip_parser(req: DocumentRequest):
+    return _execute("salary_slip_parser", req.model_dump())
 
 @app.get("/health")
 async def health():
